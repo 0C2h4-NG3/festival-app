@@ -103,6 +103,7 @@ let sessionId = localStorage.getItem("festival-session-id") || "";
 let view = "timeline";
 let selectedDay = state.selectedDay || DAYS[0].value;
 let modal = null;
+let actPopover = null;
 let toastTimer = null;
 let clockTimer = null;
 
@@ -321,6 +322,7 @@ function render() {
         ${renderView()}
       </main>
     </div>
+    ${actPopover ? renderActPopover() : ""}
     ${modal ? renderModal() : ""}
   `;
   bindApp();
@@ -489,8 +491,37 @@ function renderTimeGridRow(stage, acts, min, range, currentLeft) {
           const end = timeToFestivalMinutes(act.end || act.start);
           const left = ((start - min) / range) * 100;
           const width = Math.max(5, ((Math.max(end, start + 20) - start) / range) * 100);
-          return `<div class="time-act ${stageColorClass(stage)}" style="left:${left}%;width:${width}%" title="${escapeHtml(act.artist)} · ${formatTime(act.start, act.end)}"><span>${escapeHtml(act.artist)}</span><small>${formatTime(act.start, act.end)}</small></div>`;
+          return `<button class="time-act ${stageColorClass(stage)}" style="left:${left}%;width:${width}%" title="${escapeHtml(act.artist)} · ${formatTime(act.start, act.end)}" data-act-info="${act.id}"><span>${escapeHtml(act.artist)}</span><small>${formatTime(act.start, act.end)}</small></button>`;
         }).join("")}
+      </div>
+    </div>
+  `;
+}
+
+function renderActPopover() {
+  const act = state.acts.find((item) => item.id === actPopover);
+  if (!act) return "";
+  const stage = state.stages.find((item) => item.id === act.stageId);
+  const attending = state.profiles.filter((profile) => profilePlan(profile.id).acts[act.id] === "attending");
+  const maybe = state.profiles.filter((profile) => profilePlan(profile.id).acts[act.id] === "maybe");
+  return `
+    <div class="act-popover-backdrop" data-close-act-popover>
+      <div class="act-popover ${stageColorClass(act.stageId)}" role="dialog" aria-modal="true" aria-label="${escapeHtml(act.artist)}" data-act-popover-card>
+        <div>
+          <div class="act-time">${dayLabel(act.day)} · ${formatTime(act.start, act.end)}</div>
+          <h3>${escapeHtml(act.artist)}</h3>
+          <p class="muted">${escapeHtml(stage?.name || "Unbekannte Bühne")}</p>
+          ${act.note ? `<p>${escapeHtml(act.note)}</p>` : ""}
+        </div>
+        <div class="chip-row">
+          ${attending.map((profile) => `<span class="chip active"><span class="profile-dot" style="background:${profile.color}"></span>${escapeHtml(profile.name)}</span>`).join("")}
+          ${maybe.map((profile) => `<span class="chip"><span class="profile-dot" style="background:${profile.color}"></span>${escapeHtml(profile.name)} vielleicht</span>`).join("")}
+        </div>
+        <div class="button-row">
+          <button class="soft-button" data-plan-act="${act.id}" data-status="attending">${icon("check")} Dort</button>
+          <button class="ghost-button" data-plan-act="${act.id}" data-status="maybe">Vielleicht</button>
+          <button class="ghost-button" data-plan-act="${act.id}" data-status="">Raus</button>
+        </div>
       </div>
     </div>
   `;
@@ -854,8 +885,26 @@ function bindApp() {
   app.querySelectorAll("[data-modal]").forEach((button) => {
     button.addEventListener("click", () => {
       modal = { type: button.dataset.modal };
+      actPopover = null;
       render();
     });
+  });
+
+  app.querySelectorAll("[data-act-info]").forEach((button) => {
+    button.addEventListener("click", () => {
+      actPopover = button.dataset.actInfo;
+      modal = null;
+      render();
+    });
+  });
+
+  app.querySelector("[data-close-act-popover]")?.addEventListener("click", () => {
+    actPopover = null;
+    render();
+  });
+
+  app.querySelector("[data-act-popover-card]")?.addEventListener("click", (event) => {
+    event.stopPropagation();
   });
 
   app.querySelectorAll("[data-edit-act]").forEach((button) => {
@@ -1028,6 +1077,7 @@ function bindMutations() {
       const status = button.dataset.status;
       if (status) plan.acts[button.dataset.planAct] = status;
       else delete plan.acts[button.dataset.planAct];
+      actPopover = null;
       saveState();
       render();
     });
