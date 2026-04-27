@@ -104,6 +104,7 @@ let view = "timeline";
 let selectedDay = state.selectedDay || DAYS[0].value;
 let modal = null;
 let toastTimer = null;
+let clockTimer = null;
 
 function createSeedState() {
   const adminId = id();
@@ -217,8 +218,39 @@ function currentTimeValue() {
   });
 }
 
+function localDateKey(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function timeToFestivalMinutes(time) {
+  if (!time) return 0;
+  const [hours, minutes] = time.split(":").map(Number);
+  const total = (hours * 60) + minutes;
+  return hours < 6 ? total + 1440 : total;
+}
+
+function minutesToTimeLabel(minutes) {
+  const normalized = minutes % 1440;
+  const hours = Math.floor(normalized / 60).toString().padStart(2, "0");
+  return `${hours}:00`;
+}
+
+function currentFestivalMinutesForSelectedDay() {
+  const now = new Date();
+  const today = localDateKey(now);
+  const selectedIndex = DAYS.findIndex((day) => day.value === selectedDay);
+  const previousDay = DAYS[selectedIndex - 1]?.value;
+  const minutes = (now.getHours() * 60) + now.getMinutes();
+  if (today === selectedDay) return minutes < 6 ? minutes + 1440 : minutes;
+  if (today === previousDay && minutes < 6) return minutes + 1440;
+  return null;
+}
+
 function currentTentDay() {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateKey();
   return DAYS.some((day) => day.value === today) ? today : selectedDay;
 }
 
@@ -257,6 +289,7 @@ function render() {
   if (!state.initialized || !profile) {
     app.innerHTML = renderAuth();
     bindAuth();
+    syncClockTimer(false);
     return;
   }
 
@@ -291,6 +324,19 @@ function render() {
     ${modal ? renderModal() : ""}
   `;
   bindApp();
+  syncClockTimer(true);
+}
+
+function syncClockTimer(shouldRun) {
+  if (!shouldRun) {
+    clearInterval(clockTimer);
+    clockTimer = null;
+    return;
+  }
+  if (clockTimer) return;
+  clockTimer = setInterval(() => {
+    if (currentProfile() && view === "timeline" && !modal) render();
+  }, 60000);
 }
 
 function navButton(target, iconName, label) {
@@ -390,9 +436,63 @@ function renderTimeline() {
       <button class="soft-button big-action" data-beer-pickup ${beerLocked ? "disabled" : ""}>${icon("plus")} ${beerLocked ? "Kurz warten" : "Bier holen"}</button>
       <button class="ghost-button big-action" data-modal="drinks">${icon("check")} Getränke</button>
     </div>
+    ${acts.length ? renderTimeGrid(acts) : ""}
     <section class="grid">
       ${acts.length ? renderStageRows(acts) : `<div class="empty">Noch keine Auftritte für ${dayLabel(selectedDay)} eingetragen.</div>`}
     </section>
+  `;
+}
+
+function renderTimeGrid(acts) {
+  const starts = acts.map((act) => timeToFestivalMinutes(act.start));
+  const ends = acts.map((act) => timeToFestivalMinutes(act.end || act.start));
+  const min = Math.floor(Math.min(...starts, 12 * 60) / 60) * 60;
+  const max = Math.ceil(Math.max(...ends, 26 * 60) / 60) * 60;
+  const range = Math.max(60, max - min);
+  const hours = [];
+  for (let minute = min; minute <= max; minute += 60) hours.push(minute);
+  const stages = state.stages.filter((stage) => acts.some((act) => act.stageId === stage.id));
+  const current = currentFestivalMinutesForSelectedDay();
+  const currentLeft = current !== null && current >= min && current <= max ? ((current - min) / range) * 100 : null;
+
+  return `
+    <section class="panel timeline-panel">
+      <div class="panel-header">
+        <h3>Timeline Ansicht</h3>
+        <span class="muted">${dayLabel(selectedDay)}</span>
+      </div>
+      <div class="time-grid-scroll">
+        <div class="time-grid" style="--grid-min-width:${Math.max(920, hours.length * 92)}px">
+          <div class="time-grid-header">
+            <div class="time-stage-spacer"></div>
+            <div class="time-axis">
+              ${hours.map((minute) => `<span style="left:${((minute - min) / range) * 100}%">${minutesToTimeLabel(minute)}</span>`).join("")}
+            </div>
+          </div>
+          <div class="time-grid-body">
+            ${stages.map((stage) => renderTimeGridRow(stage, acts.filter((act) => act.stageId === stage.id), min, range, currentLeft)).join("")}
+          </div>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function renderTimeGridRow(stage, acts, min, range, currentLeft) {
+  return `
+    <div class="time-stage-row ${stageColorClass(stage)}">
+      <div class="time-stage-name">${escapeHtml(stage.name)}</div>
+      <div class="time-stage-track">
+        ${currentLeft === null ? "" : `<div class="now-line" style="left:${currentLeft}%"></div>`}
+        ${acts.map((act) => {
+          const start = timeToFestivalMinutes(act.start);
+          const end = timeToFestivalMinutes(act.end || act.start);
+          const left = ((start - min) / range) * 100;
+          const width = Math.max(5, ((Math.max(end, start + 20) - start) / range) * 100);
+          return `<div class="time-act ${stageColorClass(stage)}" style="left:${left}%;width:${width}%" title="${escapeHtml(act.artist)} · ${formatTime(act.start, act.end)}"><span>${escapeHtml(act.artist)}</span><small>${formatTime(act.start, act.end)}</small></div>`;
+        }).join("")}
+      </div>
+    </div>
   `;
 }
 
