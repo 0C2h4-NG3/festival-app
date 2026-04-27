@@ -106,6 +106,7 @@ let modal = null;
 let actPopover = null;
 let toastTimer = null;
 let clockTimer = null;
+let adminPreviewUser = localStorage.getItem("festival-admin-preview-user") === "true";
 
 function createSeedState() {
   const adminId = id();
@@ -205,6 +206,10 @@ function currentProfile() {
 function isAdmin() {
   const profile = currentProfile();
   return Boolean(profile && profile.role === "admin");
+}
+
+function canManage() {
+  return isAdmin() && !adminPreviewUser;
 }
 
 function formatTime(start, end) {
@@ -311,10 +316,11 @@ function render() {
         <nav class="nav">
           ${navButton("timeline", "schedule", "Timetable")}
           ${navButton("myplan", "tent", "Mein Plan")}
-          ${isAdmin() ? navButton("profiles", "users", "Profile") : ""}
-          ${isAdmin() ? navButton("settings", "settings", "Daten") : ""}
+          ${canManage() ? navButton("profiles", "users", "Profile") : ""}
+          ${canManage() ? navButton("settings", "settings", "Daten") : ""}
         </nav>
         <div class="sidebar-footer">
+          ${isAdmin() ? `<button class="soft-button" data-toggle-admin-view>${icon(adminPreviewUser ? "settings" : "users")} ${adminPreviewUser ? "Admin Ansicht" : "User Ansicht"}</button>` : ""}
           <button class="ghost-button" data-action="logout">${icon("logout")} Abmelden</button>
         </div>
       </aside>
@@ -401,8 +407,8 @@ function renderLoginForm() {
 
 function renderView() {
   if (view === "myplan") return renderMyPlan();
-  if (view === "profiles" && isAdmin()) return renderProfiles();
-  if (view === "settings" && isAdmin()) return renderSettings();
+  if (view === "profiles" && canManage()) return renderProfiles();
+  if (view === "settings" && canManage()) return renderSettings();
   return renderTimeline();
 }
 
@@ -429,7 +435,7 @@ function renderDayTabs() {
 function renderTimeline() {
   const tentActive = activeTentEntry();
   const beerLocked = beerButtonLocked();
-  const adminActions = isAdmin() ? `<button class="primary-button compact-action" data-modal="act">${icon("plus")} Act</button><button class="soft-button compact-action" data-modal="stage">${icon("plus")} Bühne</button>` : "";
+  const adminActions = canManage() ? `<button class="primary-button compact-action" data-modal="act">${icon("plus")} Act</button><button class="soft-button compact-action" data-modal="stage">${icon("plus")} Bühne</button>` : "";
   const acts = sortedActs();
   return `
     ${renderHeader("Timetable", "Line-up und persönliche Auswahl", `${renderDayTabs()}${adminActions}`)}
@@ -569,7 +575,7 @@ function renderActCard(act) {
         <button class="soft-button" data-plan-act="${act.id}" data-status="attending">${icon("check")} Dort</button>
         <button class="ghost-button" data-plan-act="${act.id}" data-status="maybe">Vielleicht</button>
         <button class="ghost-button" data-plan-act="${act.id}" data-status="">Raus</button>
-        ${isAdmin() ? `<button class="icon-button" title="Bearbeiten" data-edit-act="${act.id}">${icon("edit", "Bearbeiten")}</button><button class="icon-button" title="Löschen" data-delete-act="${act.id}">${icon("trash", "Löschen")}</button>` : ""}
+        ${canManage() ? `<button class="icon-button" title="Bearbeiten" data-edit-act="${act.id}">${icon("edit", "Bearbeiten")}</button><button class="icon-button" title="Löschen" data-delete-act="${act.id}">${icon("trash", "Löschen")}</button>` : ""}
       </div>
     </article>
   `;
@@ -940,6 +946,15 @@ function bindApp() {
   app.querySelector('[data-action="logout"]')?.addEventListener("click", () => {
     sessionId = "";
     localStorage.removeItem("festival-session-id");
+    render();
+  });
+
+  app.querySelector("[data-toggle-admin-view]")?.addEventListener("click", () => {
+    adminPreviewUser = !adminPreviewUser;
+    localStorage.setItem("festival-admin-preview-user", String(adminPreviewUser));
+    if (adminPreviewUser && (view === "profiles" || view === "settings")) view = "timeline";
+    modal = null;
+    actPopover = null;
     render();
   });
 
