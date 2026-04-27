@@ -399,7 +399,7 @@ function renderTimeline() {
 function renderStageRows(acts) {
   const stages = state.stages.filter((stage) => acts.some((act) => act.stageId === stage.id));
   return `<div class="timeline">${stages.map((stage) => `
-    <div class="stage-row">
+    <div class="stage-row ${stageColorClass(stage)}">
       <div class="stage-name">${escapeHtml(stage.name)}</div>
       <div class="act-list">
         ${acts.filter((act) => act.stageId === stage.id).map(renderActCard).join("")}
@@ -408,12 +408,23 @@ function renderStageRows(acts) {
   `).join("")}</div>`;
 }
 
+function stageColorClass(stageOrId) {
+  const stageId = typeof stageOrId === "string" ? stageOrId : stageOrId.id;
+  const stage = state.stages.find((item) => item.id === stageId);
+  const stageName = (stage?.name || "").toLowerCase();
+  if (stageName.includes("utopia")) return "stage-red";
+  if (stageName.includes("mandora")) return "stage-blue";
+  if (stageName.includes("orbit")) return "stage-purple";
+  const index = Math.max(0, state.stages.findIndex((item) => item.id === stageId));
+  return ["stage-red", "stage-blue", "stage-purple"][index % 3];
+}
+
 function renderActCard(act) {
   const plan = profilePlan();
   const status = plan.acts[act.id] || "";
   const visitors = state.profiles.filter((profile) => profilePlan(profile.id).acts[act.id] === "attending");
   return `
-    <article class="act-card ${status}">
+    <article class="act-card ${stageColorClass(act.stageId)} ${status}">
       <div>
         <div class="act-time">${formatTime(act.start, act.end)}</div>
         <div class="act-title">${escapeHtml(act.artist)}</div>
