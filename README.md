@@ -18,3 +18,6 @@ Eine statische Web-App fuer die Rock-im-Park-Planung.
 Die App braucht keinen Build-Schritt. Lege die Dateien in ein GitHub-Repository und aktiviere unter `Settings -> Pages` die Auslieferung des Branches mit dem Projektordner.
 
 Wichtig: GitHub Pages ist statisches Hosting. Die Profile und Plaene werden im Browser gespeichert (`localStorage`). Fuer echte gemeinsame Accounts, Live-Sync oder sichere Logins braucht die App spaeter ein Backend, zum Beispiel Supabase oder Firebase.
+
+todo:
+es soll automatisch der jeweilige tag für den "beim Zelt" button ausgewählt werden
