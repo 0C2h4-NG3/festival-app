@@ -107,6 +107,7 @@ let actPopover = null;
 let toastTimer = null;
 let clockTimer = null;
 let adminPreviewUser = localStorage.getItem("festival-admin-preview-user") === "true";
+let theme = localStorage.getItem("festival-theme") || "dark";
 
 function createSeedState() {
   const adminId = id();
@@ -291,6 +292,7 @@ function profilePlan(profileId = sessionId) {
 }
 
 function render() {
+  document.documentElement.dataset.theme = theme;
   const profile = currentProfile();
   if (!state.initialized || !profile) {
     app.innerHTML = renderAuth();
@@ -321,6 +323,7 @@ function render() {
         </nav>
         <div class="sidebar-footer">
           ${isAdmin() ? `<button class="soft-button" data-toggle-admin-view>${icon(adminPreviewUser ? "settings" : "users")} ${adminPreviewUser ? "Admin Ansicht" : "User Ansicht"}</button>` : ""}
+          <button class="soft-button" data-toggle-theme>${theme === "dark" ? "Hell nutzen" : "Dark Mode"}</button>
           <button class="ghost-button" data-action="logout">${icon("logout")} Abmelden</button>
         </div>
       </aside>
@@ -955,6 +958,12 @@ function bindApp() {
     if (adminPreviewUser && (view === "profiles" || view === "settings")) view = "timeline";
     modal = null;
     actPopover = null;
+    render();
+  });
+
+  app.querySelector("[data-toggle-theme]")?.addEventListener("click", () => {
+    theme = theme === "dark" ? "light" : "dark";
+    localStorage.setItem("festival-theme", theme);
     render();
   });
 
