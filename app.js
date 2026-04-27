@@ -891,11 +891,23 @@ function bindApp() {
   });
 
   app.querySelectorAll("[data-act-info]").forEach((button) => {
-    button.addEventListener("click", () => {
+    let touchMoved = false;
+    const openInfo = (event) => {
+      if (event.type === "touchend" && touchMoved) return;
+      event.preventDefault();
+      event.stopPropagation();
       actPopover = button.dataset.actInfo;
       modal = null;
       render();
-    });
+    };
+    button.addEventListener("touchstart", () => {
+      touchMoved = false;
+    }, { passive: true });
+    button.addEventListener("touchmove", () => {
+      touchMoved = true;
+    }, { passive: true });
+    button.addEventListener("touchend", openInfo, { passive: false });
+    button.addEventListener("click", openInfo);
   });
 
   app.querySelector("[data-close-act-popover]")?.addEventListener("click", () => {
