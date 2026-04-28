@@ -13,12 +13,12 @@ const COLORS = [
   "#7bd7e8",
   "#d1a15d",
   "#9ad66b",
-  "#ffcf70"
+  "#ffcf70",
 ];
 const DAYS = [
   { value: "2026-06-05", label: "Fr, 05.06." },
   { value: "2026-06-06", label: "Sa, 06.06." },
-  { value: "2026-06-07", label: "So, 07.06." }
+  { value: "2026-06-07", label: "So, 07.06." },
 ];
 const OFFICIAL_TIMETABLE = [
   ["2026-06-05", "Utopia Stage", "Ecca Vandal", "12:50", "13:35"],
@@ -94,20 +94,23 @@ const OFFICIAL_TIMETABLE = [
   ["2026-06-07", "Orbit Stage", "Malevolence", "20:35", "21:25"],
   ["2026-06-07", "Orbit Stage", "The Funeral Portrait", "21:50", "22:50"],
   ["2026-06-07", "Orbit Stage", "Danko Jones", "23:20", "00:20"],
-  ["2026-06-07", "Orbit Stage", "The Butcher Sisters", "00:50", "02:00"]
+  ["2026-06-07", "Orbit Stage", "The Butcher Sisters", "00:50", "02:00"],
 ];
 const ICONS = {
-  schedule: "M8 2v4M16 2v4M3 10h18M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z",
-  users: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75",
+  schedule:
+    "M8 2v4M16 2v4M3 10h18M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z",
+  users:
+    "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75",
   plus: "M12 5v14M5 12h14",
   tent: "M3 20 12 4l9 16M12 4v16M8 20h8",
-  settings: "M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.65 1.65 0 0 0 15 19.4a1.65 1.65 0 0 0-1 .6 1.65 1.65 0 0 0-.4 1v.2a2 2 0 1 1-4 0V21a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-.6-1 1.65 1.65 0 0 0-1-.4h-.2a2 2 0 1 1 0-4H3a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-.6 1.65 1.65 0 0 0 .4-1v-.2a2 2 0 1 1 4 0V3a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.36.19.65.47.86.82.2.35.3.74.3 1.14s-.1.79-.3 1.14c-.21.35-.5.63-.86.9Z",
+  settings:
+    "M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.65 1.65 0 0 0 15 19.4a1.65 1.65 0 0 0-1 .6 1.65 1.65 0 0 0-.4 1v.2a2 2 0 1 1-4 0V21a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-.6-1 1.65 1.65 0 0 0-1-.4h-.2a2 2 0 1 1 0-4H3a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-.6 1.65 1.65 0 0 0 .4-1v-.2a2 2 0 1 1 4 0V3a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.36.19.65.47.86.82.2.35.3.74.3 1.14s-.1.79-.3 1.14c-.21.35-.5.63-.86.9Z",
   logout: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9",
   edit: "M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z",
   trash: "M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6",
   check: "M20 6 9 17l-5-5",
   download: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3",
-  upload: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"
+  upload: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12",
 };
 
 const app = document.querySelector("#app");
@@ -122,9 +125,12 @@ let alcoholTest = null;
 let toastTimer = null;
 let clockTimer = null;
 let alcoholTimers = [];
-let adminPreviewUser = localStorage.getItem("festival-admin-preview-user") === "true";
+let adminPreviewUser =
+  localStorage.getItem("festival-admin-preview-user") === "true";
 let theme = localStorage.getItem("festival-theme") || "dark";
-let expandedStages = JSON.parse(localStorage.getItem("festival-expanded-stages") || "{}");
+let expandedStages = JSON.parse(
+  localStorage.getItem("festival-expanded-stages") || "{}",
+);
 
 function createSeedState() {
   const adminId = id();
@@ -135,13 +141,13 @@ function createSeedState() {
     stages: [
       { id: id(), name: "Utopia Stage" },
       { id: id(), name: "Mandora Stage" },
-      { id: id(), name: "Orbit Stage" }
+      { id: id(), name: "Orbit Stage" },
     ],
     acts: [],
     groups: [],
     plans: {},
     adminId,
-    initialized: false
+    initialized: false,
   };
   importOfficialTimetable(seed);
   return seed;
@@ -172,10 +178,14 @@ function ensureUniqueProfileColors(targetState) {
 }
 
 function availableColorsFor(profileId) {
-  const usedByOthers = new Set(state.profiles.filter((profile) => profile.id !== profileId).map((profile) => profile.color));
+  const usedByOthers = new Set(
+    state.profiles
+      .filter((profile) => profile.id !== profileId)
+      .map((profile) => profile.color),
+  );
   return COLORS.map((color) => ({
     color,
-    available: !usedByOthers.has(color)
+    available: !usedByOthers.has(color),
   }));
 }
 
@@ -185,7 +195,9 @@ function nextAvailableColor() {
 }
 
 function importOfficialTimetable(targetState) {
-  const stageIdsByName = new Map(targetState.stages.map((stage) => [stage.name, stage.id]));
+  const stageIdsByName = new Map(
+    targetState.stages.map((stage) => [stage.name, stage.id]),
+  );
   OFFICIAL_TIMETABLE.forEach(([, stageName]) => {
     if (!stageIdsByName.has(stageName)) {
       const stage = { id: id(), name: stageName };
@@ -197,12 +209,13 @@ function importOfficialTimetable(targetState) {
   let added = 0;
   OFFICIAL_TIMETABLE.forEach(([day, stageName, artist, start, end]) => {
     const stageId = stageIdsByName.get(stageName);
-    const exists = targetState.acts.some((act) => (
-      act.day === day
-      && act.stageId === stageId
-      && act.artist.toLowerCase() === artist.toLowerCase()
-      && act.start === start
-    ));
+    const exists = targetState.acts.some(
+      (act) =>
+        act.day === day &&
+        act.stageId === stageId &&
+        act.artist.toLowerCase() === artist.toLowerCase() &&
+        act.start === start,
+    );
     if (!exists) {
       targetState.acts.push({
         id: id(),
@@ -211,7 +224,7 @@ function importOfficialTimetable(targetState) {
         day,
         start,
         end,
-        note: "Offizieller Rock im Park 2026 Timetable"
+        note: "Offizieller Rock im Park 2026 Timetable",
       });
       added += 1;
     }
@@ -234,13 +247,17 @@ function icon(name, label = "") {
 }
 
 function escapeHtml(value = "") {
-  return String(value).replace(/[&<>"']/g, (char) => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#039;"
-  })[char]);
+  return String(value).replace(
+    /[&<>"']/g,
+    (char) =>
+      ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;",
+      })[char],
+  );
 }
 
 function currentProfile() {
@@ -264,7 +281,7 @@ function currentTimeValue() {
   return new Date().toLocaleTimeString("de-DE", {
     hour: "2-digit",
     minute: "2-digit",
-    hour12: false
+    hour12: false,
   });
 }
 
@@ -278,13 +295,15 @@ function localDateKey(date = new Date()) {
 function timeToFestivalMinutes(time) {
   if (!time) return 0;
   const [hours, minutes] = time.split(":").map(Number);
-  const total = (hours * 60) + minutes;
+  const total = hours * 60 + minutes;
   return hours < 6 ? total + 1440 : total;
 }
 
 function minutesToTimeLabel(minutes) {
   const normalized = minutes % 1440;
-  const hours = Math.floor(normalized / 60).toString().padStart(2, "0");
+  const hours = Math.floor(normalized / 60)
+    .toString()
+    .padStart(2, "0");
   return `${hours}:00`;
 }
 
@@ -293,7 +312,7 @@ function currentFestivalMinutesForSelectedDay() {
   const today = localDateKey(now);
   const selectedIndex = DAYS.findIndex((day) => day.value === selectedDay);
   const previousDay = DAYS[selectedIndex - 1]?.value;
-  const minutes = (now.getHours() * 60) + now.getMinutes();
+  const minutes = now.getHours() * 60 + now.getMinutes();
   if (today === selectedDay) return minutes < 6 ? minutes + 1440 : minutes;
   if (today === previousDay && minutes < 6) return minutes + 1440;
   return null;
@@ -315,7 +334,7 @@ function startAlcoholTest() {
     hits: 0,
     taps: 0,
     spawned: 0,
-    result: null
+    result: null,
   };
   spawnMug();
   scheduleAlcoholTick();
@@ -327,7 +346,9 @@ function scheduleAlcoholTick() {
   const tick = () => {
     if (!alcoholTest || alcoholTest.phase !== "game") return;
     const now = Date.now();
-    alcoholTest.mugs = alcoholTest.mugs.filter((mug) => now - mug.createdAt < 1700);
+    alcoholTest.mugs = alcoholTest.mugs.filter(
+      (mug) => now - mug.createdAt < 1700,
+    );
     if (now >= alcoholTest.endAt) {
       finishAlcoholGame();
       return;
@@ -347,7 +368,7 @@ function spawnMug() {
     x: 8 + Math.random() * 78,
     y: 12 + Math.random() * 68,
     size: 50 + Math.random() * 24,
-    createdAt: Date.now()
+    createdAt: Date.now(),
   });
 }
 
@@ -358,15 +379,25 @@ function finishAlcoholGame() {
   const spawned = Math.max(1, alcoholTest.spawned);
   const hitRate = hits / spawned;
   const precision = taps ? hits / taps : 0;
-  const score = Math.round(((hitRate * 0.58) + (precision * 0.42)) * 100);
+  const score = Math.round((hitRate * 0.58 + precision * 0.42) * 100);
   alcoholTest.phase = "calculating";
-  alcoholTest.result = { hits, taps, spawned, hitRate, precision, score, level: alcoholLevel(score, hits, taps) };
+  alcoholTest.result = {
+    hits,
+    taps,
+    spawned,
+    hitRate,
+    precision,
+    score,
+    level: alcoholLevel(score, hits, taps),
+  };
   clearAlcoholTimers();
-  alcoholTimers.push(setTimeout(() => {
-    if (!alcoholTest) return;
-    alcoholTest.phase = "result";
-    render();
-  }, 5000));
+  alcoholTimers.push(
+    setTimeout(() => {
+      if (!alcoholTest) return;
+      alcoholTest.phase = "result";
+      render();
+    }, 5000),
+  );
   render();
 }
 
@@ -390,7 +421,9 @@ function currentTentDay() {
 }
 
 function activeTentEntry(profileId = sessionId) {
-  return profilePlan(profileId).tents.find((item) => item.active && (!item.kind || item.kind === "tent"));
+  return profilePlan(profileId).tents.find(
+    (item) => item.active && (!item.kind || item.kind === "tent"),
+  );
 }
 
 function beerButtonLocked(profileId = sessionId) {
@@ -405,15 +438,27 @@ function dayLabel(day) {
 function sortedActs(day = selectedDay) {
   return state.acts
     .filter((act) => act.day === day)
-    .sort((a, b) => `${a.start}-${a.stageId}-${a.artist}`.localeCompare(`${b.start}-${b.stageId}-${b.artist}`));
+    .sort((a, b) =>
+      `${a.start}-${a.stageId}-${a.artist}`.localeCompare(
+        `${b.start}-${b.stageId}-${b.artist}`,
+      ),
+    );
 }
 
 function profilePlan(profileId = sessionId) {
   if (!state.plans[profileId]) state.plans[profileId] = { acts: {}, tents: [] };
   if (!state.plans[profileId].acts) state.plans[profileId].acts = {};
   if (!state.plans[profileId].tents) state.plans[profileId].tents = [];
-  if (!state.plans[profileId].drinkStats) state.plans[profileId].drinkStats = { standBeer: 0, tentBeer: 0, otherDrinks: 0 };
-  if (state.plans[profileId].beerUnlockAt && state.plans[profileId].beerUnlockAt <= Date.now()) {
+  if (!state.plans[profileId].drinkStats)
+    state.plans[profileId].drinkStats = {
+      standBeer: 0,
+      tentBeer: 0,
+      otherDrinks: 0,
+    };
+  if (
+    state.plans[profileId].beerUnlockAt &&
+    state.plans[profileId].beerUnlockAt <= Date.now()
+  ) {
     delete state.plans[profileId].beerUnlockAt;
   }
   return state.plans[profileId];
@@ -568,7 +613,9 @@ function renderDayTabs() {
 function renderTimeline() {
   const tentActive = activeTentEntry();
   const beerLocked = beerButtonLocked();
-  const adminActions = canManage() ? `<button class="primary-button compact-action" data-modal="act">${icon("plus")} Act</button><button class="soft-button compact-action" data-modal="stage">${icon("plus")} Bühne</button>` : "";
+  const adminActions = canManage()
+    ? `<button class="primary-button compact-action" data-modal="act">${icon("plus")} Act</button><button class="soft-button compact-action" data-modal="stage">${icon("plus")} Bühne</button>`
+    : "";
   const acts = sortedActs();
   return `
     ${renderHeader("Timetable", "Line-up und persönliche Auswahl", `${renderDayTabs()}${adminActions}`)}
@@ -587,7 +634,9 @@ function renderTimeline() {
 }
 
 function activeGroupFor(profileId = sessionId) {
-  return state.groups.find((group) => group.members.includes(profileId)) || null;
+  return (
+    state.groups.find((group) => group.members.includes(profileId)) || null
+  );
 }
 
 function cleanupEmptyGroups() {
@@ -605,17 +654,25 @@ function renderGroupPanel() {
         </div>
         <button class="primary-button" data-modal="group">${icon("plus")} Gruppe erstellen</button>
       </div>
-      ${state.groups.length ? `<div class="group-list">
+      ${
+        state.groups.length
+          ? `<div class="group-list">
         ${state.groups.map((group) => renderGroupCard(group, activeGroup?.id === group.id)).join("")}
-      </div>` : `<div class="empty">Noch keine Gruppe erstellt.</div>`}
+      </div>`
+          : `<div class="empty">Noch keine Gruppe erstellt.</div>`
+      }
     </section>
   `;
 }
 
 function renderGroupCard(group, isActive) {
-  const creator = state.profiles.find((profile) => profile.id === group.creatorId);
+  const creator = state.profiles.find(
+    (profile) => profile.id === group.creatorId,
+  );
   const members = group.members
-    .map((memberId) => state.profiles.find((profile) => profile.id === memberId))
+    .map((memberId) =>
+      state.profiles.find((profile) => profile.id === memberId),
+    )
     .filter(Boolean);
   return `
     <button class="group-card ${isActive ? "active" : ""}" data-group-info="${group.id}">
@@ -638,9 +695,14 @@ function renderTimeGrid(acts) {
   const range = Math.max(60, max - min);
   const hours = [];
   for (let minute = min; minute <= max; minute += 60) hours.push(minute);
-  const stages = state.stages.filter((stage) => acts.some((act) => act.stageId === stage.id));
+  const stages = state.stages.filter((stage) =>
+    acts.some((act) => act.stageId === stage.id),
+  );
   const current = currentFestivalMinutesForSelectedDay();
-  const currentLeft = current !== null && current >= min && current <= max ? ((current - min) / range) * 100 : null;
+  const currentLeft =
+    current !== null && current >= min && current <= max
+      ? ((current - min) / range) * 100
+      : null;
 
   return `
     <section class="panel timeline-panel">
@@ -657,7 +719,17 @@ function renderTimeGrid(acts) {
             </div>
           </div>
           <div class="time-grid-body">
-            ${stages.map((stage) => renderTimeGridRow(stage, acts.filter((act) => act.stageId === stage.id), min, range, currentLeft)).join("")}
+            ${stages
+              .map((stage) =>
+                renderTimeGridRow(
+                  stage,
+                  acts.filter((act) => act.stageId === stage.id),
+                  min,
+                  range,
+                  currentLeft,
+                ),
+              )
+              .join("")}
           </div>
         </div>
       </div>
@@ -671,13 +743,18 @@ function renderTimeGridRow(stage, acts, min, range, currentLeft) {
       <div class="time-stage-name">${escapeHtml(stage.name)}</div>
       <div class="time-stage-track">
         ${currentLeft === null ? "" : `<div class="now-line" style="left:${currentLeft}%"></div>`}
-        ${acts.map((act) => {
-          const start = timeToFestivalMinutes(act.start);
-          const end = timeToFestivalMinutes(act.end || act.start);
-          const left = ((start - min) / range) * 100;
-          const width = Math.max(5, ((Math.max(end, start + 20) - start) / range) * 100);
-          return `<button class="time-act ${stageColorClass(stage)}" style="left:${left}%;width:${width}%" title="${escapeHtml(act.artist)} · ${formatTime(act.start, act.end)}" data-act-info="${act.id}"><span>${escapeHtml(act.artist)}</span><small>${formatTime(act.start, act.end)}</small>${renderTimelineMarkers(act.id)}</button>`;
-        }).join("")}
+        ${acts
+          .map((act) => {
+            const start = timeToFestivalMinutes(act.start);
+            const end = timeToFestivalMinutes(act.end || act.start);
+            const left = ((start - min) / range) * 100;
+            const width = Math.max(
+              5,
+              ((Math.max(end, start + 20) - start) / range) * 100,
+            );
+            return `<button class="time-act ${stageColorClass(stage)}" style="left:${left}%;width:${width}%" title="${escapeHtml(act.artist)} · ${formatTime(act.start, act.end)}" data-act-info="${act.id}"><span>${escapeHtml(act.artist)}</span><small>${formatTime(act.start, act.end)}</small>${renderTimelineMarkers(act.id)}</button>`;
+          })
+          .join("")}
       </div>
     </div>
   `;
@@ -685,7 +762,10 @@ function renderTimeGridRow(stage, acts, min, range, currentLeft) {
 
 function renderTimelineMarkers(actId) {
   const markers = state.profiles
-    .map((profile) => ({ profile, status: profilePlan(profile.id).acts[actId] }))
+    .map((profile) => ({
+      profile,
+      status: profilePlan(profile.id).acts[actId],
+    }))
     .filter((item) => item.status === "attending" || item.status === "maybe");
   if (!markers.length) return "";
   return `<div class="timeline-markers">${markers.map(({ profile, status }) => `<span class="timeline-marker ${status}" style="--profile-color:${profile.color}" title="${escapeHtml(profile.name)}: ${status === "attending" ? "Dort" : "Vielleicht"}"></span>`).join("")}</div>`;
@@ -695,8 +775,12 @@ function renderActPopover() {
   const act = state.acts.find((item) => item.id === actPopover);
   if (!act) return "";
   const stage = state.stages.find((item) => item.id === act.stageId);
-  const attending = state.profiles.filter((profile) => profilePlan(profile.id).acts[act.id] === "attending");
-  const maybe = state.profiles.filter((profile) => profilePlan(profile.id).acts[act.id] === "maybe");
+  const attending = state.profiles.filter(
+    (profile) => profilePlan(profile.id).acts[act.id] === "attending",
+  );
+  const maybe = state.profiles.filter(
+    (profile) => profilePlan(profile.id).acts[act.id] === "maybe",
+  );
   return `
     <div class="act-popover-backdrop" data-close-act-popover>
       <div class="act-popover ${stageColorClass(act.stageId)}" role="dialog" aria-modal="true" aria-label="${escapeHtml(act.artist)}" data-act-popover-card>
@@ -721,18 +805,31 @@ function renderActPopover() {
 }
 
 function renderStageRows(acts) {
-  const stages = state.stages.filter((stage) => acts.some((act) => act.stageId === stage.id));
-  return `<div class="timeline">${stages.map((stage) => `
+  const stages = state.stages.filter((stage) =>
+    acts.some((act) => act.stageId === stage.id),
+  );
+  return `<div class="timeline">${stages
+    .map(
+      (stage) => `
     <div class="stage-row ${stageColorClass(stage)} ${expandedStages[stage.id] ? "" : "collapsed"}">
       <button class="stage-name" data-toggle-stage="${stage.id}" aria-expanded="${expandedStages[stage.id] ? "true" : "false"}">
         <span>${escapeHtml(stage.name)}</span>
         <span class="stage-toggle-label">${expandedStages[stage.id] ? "Einklappen" : "Ausklappen"}</span>
       </button>
-      ${expandedStages[stage.id] ? `<div class="act-list">
-        ${acts.filter((act) => act.stageId === stage.id).map(renderActCard).join("")}
-      </div>` : ""}
+      ${
+        expandedStages[stage.id]
+          ? `<div class="act-list">
+        ${acts
+          .filter((act) => act.stageId === stage.id)
+          .map(renderActCard)
+          .join("")}
+      </div>`
+          : ""
+      }
     </div>
-  `).join("")}</div>`;
+  `,
+    )
+    .join("")}</div>`;
 }
 
 function stageColorClass(stageOrId) {
@@ -742,14 +839,19 @@ function stageColorClass(stageOrId) {
   if (stageName.includes("utopia")) return "stage-red";
   if (stageName.includes("mandora")) return "stage-blue";
   if (stageName.includes("orbit")) return "stage-purple";
-  const index = Math.max(0, state.stages.findIndex((item) => item.id === stageId));
+  const index = Math.max(
+    0,
+    state.stages.findIndex((item) => item.id === stageId),
+  );
   return ["stage-red", "stage-blue", "stage-purple"][index % 3];
 }
 
 function renderActCard(act) {
   const plan = profilePlan();
   const status = plan.acts[act.id] || "";
-  const visitors = state.profiles.filter((profile) => profilePlan(profile.id).acts[act.id] === "attending");
+  const visitors = state.profiles.filter(
+    (profile) => profilePlan(profile.id).acts[act.id] === "attending",
+  );
   return `
     <article class="act-card ${stageColorClass(act.stageId)} ${status}">
       <div>
@@ -758,7 +860,13 @@ function renderActCard(act) {
         ${act.note ? `<div class="muted">${escapeHtml(act.note)}</div>` : ""}
       </div>
       <div class="chip-row">
-        ${visitors.slice(0, 5).map((profile) => `<span class="chip"><span class="profile-dot" style="background:${profile.color}"></span>${escapeHtml(profile.name)}</span>`).join("")}
+        ${visitors
+          .slice(0, 5)
+          .map(
+            (profile) =>
+              `<span class="chip"><span class="profile-dot" style="background:${profile.color}"></span>${escapeHtml(profile.name)}</span>`,
+          )
+          .join("")}
         ${visitors.length > 5 ? `<span class="chip">+${visitors.length - 5}</span>` : ""}
       </div>
       <div class="button-row">
@@ -777,10 +885,18 @@ function renderMyPlan() {
   const pickedActs = state.acts
     .filter((act) => plan.acts[act.id])
     .sort((a, b) => `${a.day}-${a.start}`.localeCompare(`${b.day}-${b.start}`));
-  const tentItems = plan.tents.sort((a, b) => `${a.day}-${a.start}`.localeCompare(`${b.day}-${b.start}`));
+  const tentItems = plan.tents.sort((a, b) =>
+    `${a.day}-${a.start}`.localeCompare(`${b.day}-${b.start}`),
+  );
   const allTentItems = state.profiles
-    .flatMap((profile) => profilePlan(profile.id).tents.map((item) => ({ ...item, profile })))
-    .sort((a, b) => `${a.day}-${a.start}-${a.profile.name}`.localeCompare(`${b.day}-${b.start}-${b.profile.name}`));
+    .flatMap((profile) =>
+      profilePlan(profile.id).tents.map((item) => ({ ...item, profile })),
+    )
+    .sort((a, b) =>
+      `${a.day}-${a.start}-${a.profile.name}`.localeCompare(
+        `${b.day}-${b.start}-${b.profile.name}`,
+      ),
+    );
   return `
     ${renderHeader("Mein Plan", "Auftritte und Zeltzeiten", `<button class="primary-button" data-modal="tent">${icon("tent")} Im Zelt bleiben</button>`)}
     <section class="panel profile-color-panel">
@@ -791,7 +907,12 @@ function renderMyPlan() {
         </div>
       </div>
       <div class="color-picker">
-        ${availableColorsFor(profile.id).map(({ color, available }) => `<button class="color-swatch ${profile.color === color ? "active" : ""}" style="--swatch:${color}" data-set-color="${color}" ${available ? "" : "disabled"} title="${available ? "Farbe wählen" : "Schon vergeben"}"></button>`).join("")}
+        ${availableColorsFor(profile.id)
+          .map(
+            ({ color, available }) =>
+              `<button class="color-swatch ${profile.color === color ? "active" : ""}" style="--swatch:${color}" data-set-color="${color}" ${available ? "" : "disabled"} title="${available ? "Farbe wählen" : "Schon vergeben"}"></button>`,
+          )
+          .join("")}
       </div>
     </section>
     <section class="grid two">
@@ -799,27 +920,39 @@ function renderMyPlan() {
         <div class="panel-header">
           <h3>Ausgewählte Auftritte</h3>
         </div>
-        ${pickedActs.length ? `<div class="table-wrap"><table><thead><tr><th>Tag</th><th>Zeit</th><th>Act</th><th>Status</th></tr></thead><tbody>
+        ${
+          pickedActs.length
+            ? `<div class="table-wrap"><table><thead><tr><th>Tag</th><th>Zeit</th><th>Act</th><th>Status</th></tr></thead><tbody>
           ${pickedActs.map((act) => `<tr><td>${dayLabel(act.day)}</td><td>${formatTime(act.start, act.end)}</td><td>${escapeHtml(act.artist)}</td><td>${plan.acts[act.id] === "attending" ? "Dort" : "Vielleicht"}</td></tr>`).join("")}
-        </tbody></table></div>` : `<div class="empty">Noch keine Auftritte markiert.</div>`}
+        </tbody></table></div>`
+            : `<div class="empty">Noch keine Auftritte markiert.</div>`
+        }
       </div>
       <div class="panel">
         <div class="panel-header">
           <h3>Zeltzeiten</h3>
           <button class="soft-button" data-modal="tent">${icon("plus")} Zeit</button>
         </div>
-        ${tentItems.length ? `<div class="table-wrap"><table><thead><tr><th>Tag</th><th>Zeit</th><th>Notiz</th><th></th></tr></thead><tbody>
+        ${
+          tentItems.length
+            ? `<div class="table-wrap"><table><thead><tr><th>Tag</th><th>Zeit</th><th>Notiz</th><th></th></tr></thead><tbody>
           ${tentItems.map((item) => `<tr><td>${dayLabel(item.day)}</td><td>${formatTime(item.start, item.end)}</td><td>${escapeHtml(item.note || "Im Zelt bleiben")}</td><td><button class="icon-button" title="Löschen" data-delete-tent="${item.id}">${icon("trash", "Löschen")}</button></td></tr>`).join("")}
-        </tbody></table></div>` : `<div class="empty">Noch keine Zeltzeit eingetragen.</div>`}
+        </tbody></table></div>`
+            : `<div class="empty">Noch keine Zeltzeit eingetragen.</div>`
+        }
       </div>
     </section>
     <section class="panel" style="margin-top:16px">
       <div class="panel-header">
         <h3>Zeltzeiten aller Profile</h3>
       </div>
-      ${allTentItems.length ? `<div class="table-wrap"><table><thead><tr><th>Profil</th><th>Tag</th><th>Zeit</th><th>Notiz</th></tr></thead><tbody>
+      ${
+        allTentItems.length
+          ? `<div class="table-wrap"><table><thead><tr><th>Profil</th><th>Tag</th><th>Zeit</th><th>Notiz</th></tr></thead><tbody>
         ${allTentItems.map((item) => `<tr><td><span class="profile-dot" style="background:${item.profile.color}"></span>${escapeHtml(item.profile.name)}</td><td>${dayLabel(item.day)}</td><td>${formatTime(item.start, item.end)}</td><td>${escapeHtml(item.note || "Im Zelt bleiben")}</td></tr>`).join("")}
-      </tbody></table></div>` : `<div class="empty">Noch keine Zeltzeiten in der Gruppe eingetragen.</div>`}
+      </tbody></table></div>`
+          : `<div class="empty">Noch keine Zeltzeiten in der Gruppe eingetragen.</div>`
+      }
     </section>
   `;
 }
@@ -834,12 +967,16 @@ function renderProfiles() {
           <table>
             <thead><tr><th>Name</th><th>Rolle</th><th>PIN</th><th></th></tr></thead>
             <tbody>
-              ${state.profiles.map((profile) => `<tr>
+              ${state.profiles
+                .map(
+                  (profile) => `<tr>
                 <td><span class="profile-dot" style="background:${profile.color}"></span>${escapeHtml(profile.name)}</td>
                 <td>${profile.role === "admin" ? "Admin" : "Profil"}</td>
                 <td>${escapeHtml(profile.pin)}</td>
                 <td>${profile.id !== sessionId ? `<button class="icon-button" title="Löschen" data-delete-profile="${profile.id}">${icon("trash", "Löschen")}</button>` : ""}</td>
-              </tr>`).join("")}
+              </tr>`,
+                )
+                .join("")}
             </tbody>
           </table>
         </div>
@@ -855,18 +992,25 @@ function renderProfiles() {
 function renderAdminOverview() {
   const rows = state.acts
     .map((act) => {
-      const attending = state.profiles.filter((profile) => profilePlan(profile.id).acts[act.id] === "attending");
+      const attending = state.profiles.filter(
+        (profile) => profilePlan(profile.id).acts[act.id] === "attending",
+      );
       return { act, attending };
     })
     .filter((row) => row.attending.length);
-  if (!rows.length) return `<div class="empty">Noch keine Zusagen eingetragen.</div>`;
-  return `<div class="grid">${rows.map(({ act, attending }) => `
+  if (!rows.length)
+    return `<div class="empty">Noch keine Zusagen eingetragen.</div>`;
+  return `<div class="grid">${rows
+    .map(
+      ({ act, attending }) => `
     <div>
       <strong>${escapeHtml(act.artist)}</strong>
       <div class="muted">${dayLabel(act.day)} · ${formatTime(act.start, act.end)}</div>
       <div class="chip-row">${attending.map((profile) => `<span class="chip active"><span class="profile-dot" style="background:${profile.color}"></span>${escapeHtml(profile.name)}</span>`).join("")}</div>
     </div>
-  `).join("")}</div>`;
+  `,
+    )
+    .join("")}</div>`;
 }
 
 function renderSettings() {
@@ -892,12 +1036,20 @@ function renderSettings() {
 }
 
 function renderModal() {
-  const title = modal.type === "act" ? (modal.actId ? "Act bearbeiten" : "Act eintragen")
-    : modal.type === "profile" ? "Profil anlegen"
-    : modal.type === "stage" ? "Bühne anlegen"
-    : modal.type === "drinks" ? "Getränke zählen"
-    : modal.type === "group" ? "Gruppe erstellen"
-    : "Zeltzeit eintragen";
+  const title =
+    modal.type === "act"
+      ? modal.actId
+        ? "Act bearbeiten"
+        : "Act eintragen"
+      : modal.type === "profile"
+        ? "Profil anlegen"
+        : modal.type === "stage"
+          ? "Bühne anlegen"
+          : modal.type === "drinks"
+            ? "Getränke zählen"
+            : modal.type === "group"
+              ? "Gruppe erstellen"
+              : "Zeltzeit eintragen";
   return `
     <div class="modal-backdrop" data-close-modal>
       <div class="modal-card" role="dialog" aria-modal="true" aria-label="${escapeHtml(title)}" data-modal-card>
@@ -919,9 +1071,13 @@ function renderModal() {
 function renderGroupDialog() {
   const group = state.groups.find((item) => item.id === groupDialog);
   if (!group) return "";
-  const creator = state.profiles.find((profile) => profile.id === group.creatorId);
+  const creator = state.profiles.find(
+    (profile) => profile.id === group.creatorId,
+  );
   const members = group.members
-    .map((memberId) => state.profiles.find((profile) => profile.id === memberId))
+    .map((memberId) =>
+      state.profiles.find((profile) => profile.id === memberId),
+    )
     .filter(Boolean);
   const joined = group.members.includes(sessionId);
   const canDelete = group.creatorId === sessionId;
@@ -992,7 +1148,7 @@ function renderAlcoholTest() {
           <div class="stat"><span class="muted">Treffer</span><strong>${result.hits}</strong></div>
           <div class="stat"><span class="muted">Taps</span><strong>${result.taps}</strong></div>
         </div>
-        <p class="muted">Getroffene Krüge: ${result.hits} von ${result.spawned}. Präzision: ${Math.round(result.precision * 100)}%.</p>
+        <p class="muted">Getroffene Krüge: ${result.hits} von ${result.spawned}. <br> Präzision: ${Math.round(result.precision * 100)}%.</p>
         <button class="primary-button" data-close-alcohol-test>Fertig</button>
       </div>
     </div>
@@ -1000,7 +1156,14 @@ function renderAlcoholTest() {
 }
 
 function renderActForm() {
-  const act = state.acts.find((item) => item.id === modal.actId) || { day: selectedDay, start: "", end: "", artist: "", stageId: state.stages[0]?.id || "", note: "" };
+  const act = state.acts.find((item) => item.id === modal.actId) || {
+    day: selectedDay,
+    start: "",
+    end: "",
+    artist: "",
+    stageId: state.stages[0]?.id || "",
+    note: "",
+  };
   return `
     <form class="form-grid" data-form="act">
       <label>Band / Artist
@@ -1144,7 +1307,7 @@ function bindAuth() {
         name: data.get("name").trim(),
         pin: data.get("pin"),
         role: "admin",
-        color: COLORS[0]
+        color: COLORS[0],
       };
       state.profiles = [profile];
       state.adminId = profile.id;
@@ -1161,7 +1324,9 @@ function bindAuth() {
     login.addEventListener("submit", (event) => {
       event.preventDefault();
       const data = new FormData(login);
-      const profile = state.profiles.find((item) => item.id === data.get("profileId"));
+      const profile = state.profiles.find(
+        (item) => item.id === data.get("profileId"),
+      );
       if (!profile || profile.pin !== data.get("pin")) {
         showToast("PIN passt nicht.");
         return;
@@ -1193,7 +1358,10 @@ function bindApp() {
     button.addEventListener("click", () => {
       const stageId = button.dataset.toggleStage;
       expandedStages[stageId] = !expandedStages[stageId];
-      localStorage.setItem("festival-expanded-stages", JSON.stringify(expandedStages));
+      localStorage.setItem(
+        "festival-expanded-stages",
+        JSON.stringify(expandedStages),
+      );
       render();
     });
   });
@@ -1216,12 +1384,20 @@ function bindApp() {
       modal = null;
       render();
     };
-    button.addEventListener("touchstart", () => {
-      touchMoved = false;
-    }, { passive: true });
-    button.addEventListener("touchmove", () => {
-      touchMoved = true;
-    }, { passive: true });
+    button.addEventListener(
+      "touchstart",
+      () => {
+        touchMoved = false;
+      },
+      { passive: true },
+    );
+    button.addEventListener(
+      "touchmove",
+      () => {
+        touchMoved = true;
+      },
+      { passive: true },
+    );
     button.addEventListener("touchend", openInfo, { passive: false });
     button.addEventListener("click", openInfo);
   });
@@ -1235,26 +1411,36 @@ function bindApp() {
     });
   });
 
-  app.querySelector("[data-close-act-popover]")?.addEventListener("click", () => {
-    actPopover = null;
-    render();
-  });
+  app
+    .querySelector("[data-close-act-popover]")
+    ?.addEventListener("click", () => {
+      actPopover = null;
+      render();
+    });
 
-  app.querySelector("[data-act-popover-card]")?.addEventListener("click", (event) => {
-    event.stopPropagation();
-  });
+  app
+    .querySelector("[data-act-popover-card]")
+    ?.addEventListener("click", (event) => {
+      event.stopPropagation();
+    });
 
   app.querySelectorAll("[data-close-group-dialog]").forEach((element) => {
     element.addEventListener("click", (event) => {
-      if (event.target.closest("[data-group-dialog-card]") && !event.target.matches("[data-close-group-dialog]")) return;
+      if (
+        event.target.closest("[data-group-dialog-card]") &&
+        !event.target.matches("[data-close-group-dialog]")
+      )
+        return;
       groupDialog = null;
       render();
     });
   });
 
-  app.querySelector("[data-group-dialog-card]")?.addEventListener("click", (event) => {
-    event.stopPropagation();
-  });
+  app
+    .querySelector("[data-group-dialog-card]")
+    ?.addEventListener("click", (event) => {
+      event.stopPropagation();
+    });
 
   app.querySelectorAll("[data-edit-act]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -1265,14 +1451,19 @@ function bindApp() {
 
   app.querySelectorAll("[data-close-modal]").forEach((element) => {
     element.addEventListener("click", (event) => {
-      if (event.target.closest("[data-modal-card]") && !event.target.matches("[data-close-modal]")) return;
+      if (
+        event.target.closest("[data-modal-card]") &&
+        !event.target.matches("[data-close-modal]")
+      )
+        return;
       modal = null;
       render();
     });
   });
 
   const modalCard = app.querySelector("[data-modal-card]");
-  if (modalCard) modalCard.addEventListener("click", (event) => event.stopPropagation());
+  if (modalCard)
+    modalCard.addEventListener("click", (event) => event.stopPropagation());
 
   app.querySelector('[data-action="logout"]')?.addEventListener("click", () => {
     sessionId = "";
@@ -1280,14 +1471,20 @@ function bindApp() {
     render();
   });
 
-  app.querySelector("[data-toggle-admin-view]")?.addEventListener("click", () => {
-    adminPreviewUser = !adminPreviewUser;
-    localStorage.setItem("festival-admin-preview-user", String(adminPreviewUser));
-    if (adminPreviewUser && (view === "profiles" || view === "settings")) view = "timeline";
-    modal = null;
-    actPopover = null;
-    render();
-  });
+  app
+    .querySelector("[data-toggle-admin-view]")
+    ?.addEventListener("click", () => {
+      adminPreviewUser = !adminPreviewUser;
+      localStorage.setItem(
+        "festival-admin-preview-user",
+        String(adminPreviewUser),
+      );
+      if (adminPreviewUser && (view === "profiles" || view === "settings"))
+        view = "timeline";
+      modal = null;
+      actPopover = null;
+      render();
+    });
 
   app.querySelector("[data-toggle-theme]")?.addEventListener("click", () => {
     theme = theme === "dark" ? "light" : "dark";
@@ -1295,17 +1492,23 @@ function bindApp() {
     render();
   });
 
-  app.querySelector("[data-start-alcohol-test]")?.addEventListener("click", () => {
-    modal = null;
-    actPopover = null;
-    groupDialog = null;
-    startAlcoholTest();
-  });
+  app
+    .querySelector("[data-start-alcohol-test]")
+    ?.addEventListener("click", () => {
+      modal = null;
+      actPopover = null;
+      groupDialog = null;
+      startAlcoholTest();
+    });
 
-  app.querySelector("[data-alcohol-arena]")?.addEventListener("pointerdown", () => {
-    if (!alcoholTest || alcoholTest.phase !== "game") return;
-    alcoholTest.taps += 1;
-  }, { capture: true });
+  app.querySelector("[data-alcohol-arena]")?.addEventListener(
+    "pointerdown",
+    () => {
+      if (!alcoholTest || alcoholTest.phase !== "game") return;
+      alcoholTest.taps += 1;
+    },
+    { capture: true },
+  );
 
   app.querySelectorAll("[data-mug-id]").forEach((button) => {
     button.addEventListener("pointerdown", (event) => {
@@ -1319,17 +1522,21 @@ function bindApp() {
     });
   });
 
-  app.querySelector("[data-close-alcohol-test]")?.addEventListener("click", () => {
-    alcoholTest = null;
-    clearAlcoholTimers();
-    render();
-  });
+  app
+    .querySelector("[data-close-alcohol-test]")
+    ?.addEventListener("click", () => {
+      alcoholTest = null;
+      clearAlcoholTimers();
+      render();
+    });
 
   app.querySelectorAll("[data-set-color]").forEach((button) => {
     button.addEventListener("click", () => {
       const profile = currentProfile();
       const color = button.dataset.setColor;
-      const taken = state.profiles.some((item) => item.id !== profile.id && item.color === color);
+      const taken = state.profiles.some(
+        (item) => item.id !== profile.id && item.color === color,
+      );
       if (taken) {
         showToast("Diese Farbe ist schon vergeben.");
         render();
@@ -1347,93 +1554,107 @@ function bindApp() {
 }
 
 function bindForms() {
-  app.querySelector('[data-form="act"]')?.addEventListener("submit", (event) => {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    const act = {
-      id: modal.actId || id(),
-      artist: data.get("artist").trim(),
-      stageId: data.get("stageId"),
-      day: data.get("day"),
-      start: data.get("start"),
-      end: data.get("end"),
-      note: data.get("note").trim()
-    };
-    if (modal.actId) {
-      state.acts = state.acts.map((item) => item.id === modal.actId ? act : item);
-    } else {
-      state.acts.push(act);
-    }
-    selectedDay = act.day;
-    modal = null;
-    saveState();
-    render();
-  });
-
-  app.querySelector('[data-form="profile"]')?.addEventListener("submit", (event) => {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    const color = nextAvailableColor();
-    if (!color) {
-      showToast("Keine freie Profilfarbe mehr verfügbar.");
-      return;
-    }
-    state.profiles.push({
-      id: id(),
-      name: data.get("name").trim(),
-      pin: data.get("pin"),
-      role: data.get("role"),
-      color
+  app
+    .querySelector('[data-form="act"]')
+    ?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const data = new FormData(event.currentTarget);
+      const act = {
+        id: modal.actId || id(),
+        artist: data.get("artist").trim(),
+        stageId: data.get("stageId"),
+        day: data.get("day"),
+        start: data.get("start"),
+        end: data.get("end"),
+        note: data.get("note").trim(),
+      };
+      if (modal.actId) {
+        state.acts = state.acts.map((item) =>
+          item.id === modal.actId ? act : item,
+        );
+      } else {
+        state.acts.push(act);
+      }
+      selectedDay = act.day;
+      modal = null;
+      saveState();
+      render();
     });
-    modal = null;
-    saveState();
-    render();
-  });
 
-  app.querySelector('[data-form="stage"]')?.addEventListener("submit", (event) => {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    state.stages.push({ id: id(), name: data.get("name").trim() });
-    modal = null;
-    saveState();
-    render();
-  });
-
-  app.querySelector('[data-form="tent"]')?.addEventListener("submit", (event) => {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    profilePlan().tents.push({
-      id: id(),
-      day: data.get("day"),
-      start: data.get("start"),
-      end: data.get("end"),
-      note: data.get("note").trim()
+  app
+    .querySelector('[data-form="profile"]')
+    ?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const data = new FormData(event.currentTarget);
+      const color = nextAvailableColor();
+      if (!color) {
+        showToast("Keine freie Profilfarbe mehr verfügbar.");
+        return;
+      }
+      state.profiles.push({
+        id: id(),
+        name: data.get("name").trim(),
+        pin: data.get("pin"),
+        role: data.get("role"),
+        color,
+      });
+      modal = null;
+      saveState();
+      render();
     });
-    modal = null;
-    saveState();
-    render();
-  });
 
-  app.querySelector('[data-form="group"]')?.addEventListener("submit", (event) => {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    state.groups.forEach((group) => {
-      group.members = group.members.filter((memberId) => memberId !== sessionId);
+  app
+    .querySelector('[data-form="stage"]')
+    ?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const data = new FormData(event.currentTarget);
+      state.stages.push({ id: id(), name: data.get("name").trim() });
+      modal = null;
+      saveState();
+      render();
     });
-    cleanupEmptyGroups();
-    const group = {
-      id: id(),
-      name: data.get("name").trim(),
-      creatorId: sessionId,
-      members: [sessionId],
-      createdAt: new Date().toISOString()
-    };
-    state.groups.push(group);
-    modal = null;
-    groupDialog = group.id;
-    saveState();
-    render();
-  });
+
+  app
+    .querySelector('[data-form="tent"]')
+    ?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const data = new FormData(event.currentTarget);
+      profilePlan().tents.push({
+        id: id(),
+        day: data.get("day"),
+        start: data.get("start"),
+        end: data.get("end"),
+        note: data.get("note").trim(),
+      });
+      modal = null;
+      saveState();
+      render();
+    });
+
+  app
+    .querySelector('[data-form="group"]')
+    ?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const data = new FormData(event.currentTarget);
+      state.groups.forEach((group) => {
+        group.members = group.members.filter(
+          (memberId) => memberId !== sessionId,
+        );
+      });
+      cleanupEmptyGroups();
+      const group = {
+        id: id(),
+        name: data.get("name").trim(),
+        creatorId: sessionId,
+        members: [sessionId],
+        createdAt: new Date().toISOString(),
+      };
+      state.groups.push(group);
+      modal = null;
+      groupDialog = group.id;
+      saveState();
+      render();
+    });
 }
 
 function bindMutations() {
@@ -1453,7 +1674,7 @@ function bindMutations() {
         end: "",
         note: "Beim Zelt",
         kind: "tent",
-        active: true
+        active: true,
       });
       showToast("Zeltzeit gestartet.");
     }
@@ -1472,7 +1693,7 @@ function bindMutations() {
       end: now,
       note: "Bier holen",
       kind: "beer",
-      active: false
+      active: false,
     });
     plan.drinkStats.standBeer = Number(plan.drinkStats.standBeer || 0) + 1;
     showToast("Bierholen eingetragen.");
@@ -1522,8 +1743,12 @@ function bindMutations() {
   app.querySelectorAll("[data-delete-act]").forEach((button) => {
     button.addEventListener("click", () => {
       if (!confirm("Diesen Act löschen?")) return;
-      state.acts = state.acts.filter((act) => act.id !== button.dataset.deleteAct);
-      Object.values(state.plans).forEach((plan) => delete plan.acts?.[button.dataset.deleteAct]);
+      state.acts = state.acts.filter(
+        (act) => act.id !== button.dataset.deleteAct,
+      );
+      Object.values(state.plans).forEach(
+        (plan) => delete plan.acts?.[button.dataset.deleteAct],
+      );
       saveState();
       render();
     });
@@ -1532,7 +1757,9 @@ function bindMutations() {
   app.querySelectorAll("[data-delete-profile]").forEach((button) => {
     button.addEventListener("click", () => {
       if (!confirm("Dieses Profil löschen?")) return;
-      state.profiles = state.profiles.filter((profile) => profile.id !== button.dataset.deleteProfile);
+      state.profiles = state.profiles.filter(
+        (profile) => profile.id !== button.dataset.deleteProfile,
+      );
       delete state.plans[button.dataset.deleteProfile];
       saveState();
       render();
@@ -1555,7 +1782,9 @@ function bindMutations() {
   app.querySelectorAll("[data-delete-tent]").forEach((button) => {
     button.addEventListener("click", () => {
       const plan = profilePlan();
-      plan.tents = plan.tents.filter((item) => item.id !== button.dataset.deleteTent);
+      plan.tents = plan.tents.filter(
+        (item) => item.id !== button.dataset.deleteTent,
+      );
       saveState();
       render();
     });
@@ -1563,10 +1792,14 @@ function bindMutations() {
 
   app.querySelectorAll("[data-join-group]").forEach((button) => {
     button.addEventListener("click", () => {
-      const group = state.groups.find((item) => item.id === button.dataset.joinGroup);
+      const group = state.groups.find(
+        (item) => item.id === button.dataset.joinGroup,
+      );
       if (!group) return;
       state.groups.forEach((item) => {
-        item.members = item.members.filter((memberId) => memberId !== sessionId);
+        item.members = item.members.filter(
+          (memberId) => memberId !== sessionId,
+        );
       });
       if (!group.members.includes(sessionId)) group.members.push(sessionId);
       cleanupEmptyGroups();
@@ -1578,11 +1811,16 @@ function bindMutations() {
 
   app.querySelectorAll("[data-leave-group]").forEach((button) => {
     button.addEventListener("click", () => {
-      const group = state.groups.find((item) => item.id === button.dataset.leaveGroup);
+      const group = state.groups.find(
+        (item) => item.id === button.dataset.leaveGroup,
+      );
       if (!group) return;
-      group.members = group.members.filter((memberId) => memberId !== sessionId);
+      group.members = group.members.filter(
+        (memberId) => memberId !== sessionId,
+      );
       cleanupEmptyGroups();
-      if (!state.groups.some((item) => item.id === group.id)) groupDialog = null;
+      if (!state.groups.some((item) => item.id === group.id))
+        groupDialog = null;
       saveState();
       render();
     });
@@ -1590,7 +1828,9 @@ function bindMutations() {
 
   app.querySelectorAll("[data-delete-group]").forEach((button) => {
     button.addEventListener("click", () => {
-      const group = state.groups.find((item) => item.id === button.dataset.deleteGroup);
+      const group = state.groups.find(
+        (item) => item.id === button.dataset.deleteGroup,
+      );
       if (!group || group.creatorId !== sessionId) return;
       if (!confirm("Diese Gruppe löschen?")) return;
       state.groups = state.groups.filter((item) => item.id !== group.id);
@@ -1605,12 +1845,18 @@ function bindImportExport() {
   app.querySelector("[data-load-official]")?.addEventListener("click", () => {
     const added = importOfficialTimetable(state);
     saveState();
-    showToast(added ? `${added} offizielle Acts eingetragen.` : "Timetable war schon vollständig.");
+    showToast(
+      added
+        ? `${added} offizielle Acts eingetragen.`
+        : "Timetable war schon vollständig.",
+    );
     render();
   });
 
   app.querySelector("[data-export]")?.addEventListener("click", () => {
-    const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+    const blob = new Blob([JSON.stringify(state, null, 2)], {
+      type: "application/json",
+    });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -1623,22 +1869,28 @@ function bindImportExport() {
     app.querySelector("[data-import-file]")?.click();
   });
 
-  app.querySelector("[data-import-file]")?.addEventListener("change", async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-    try {
-      const nextState = JSON.parse(await file.text());
-      if (!Array.isArray(nextState.profiles) || !Array.isArray(nextState.stages)) throw new Error("Invalid backup");
-      state = { ...createSeedState(), ...nextState, initialized: true };
-      sessionId = "";
-      localStorage.removeItem("festival-session-id");
-      saveState();
-      showToast("Import abgeschlossen. Bitte neu einloggen.");
-      render();
-    } catch {
-      showToast("Import fehlgeschlagen.");
-    }
-  });
+  app
+    .querySelector("[data-import-file]")
+    ?.addEventListener("change", async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      try {
+        const nextState = JSON.parse(await file.text());
+        if (
+          !Array.isArray(nextState.profiles) ||
+          !Array.isArray(nextState.stages)
+        )
+          throw new Error("Invalid backup");
+        state = { ...createSeedState(), ...nextState, initialized: true };
+        sessionId = "";
+        localStorage.removeItem("festival-session-id");
+        saveState();
+        showToast("Import abgeschlossen. Bitte neu einloggen.");
+        render();
+      } catch {
+        showToast("Import fehlgeschlagen.");
+      }
+    });
 }
 
 function showToast(message) {
