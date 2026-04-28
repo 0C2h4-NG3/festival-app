@@ -117,6 +117,7 @@ let view = "timeline";
 let selectedDay = state.selectedDay || DAYS[0].value;
 let modal = null;
 let actPopover = null;
+let groupDialog = null;
 let toastTimer = null;
 let clockTimer = null;
 let adminPreviewUser = localStorage.getItem("festival-admin-preview-user") === "true";
@@ -134,6 +135,7 @@ function createSeedState() {
       { id: id(), name: "Orbit Stage" }
     ],
     acts: [],
+    groups: [],
     plans: {},
     adminId,
     initialized: false
@@ -147,6 +149,7 @@ function loadState() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return createSeedState();
     const nextState = { ...createSeedState(), ...JSON.parse(raw) };
+    if (!Array.isArray(nextState.groups)) nextState.groups = [];
     if (!nextState.acts.length) importOfficialTimetable(nextState);
     ensureUniqueProfileColors(nextState);
     return nextState;
@@ -369,6 +372,7 @@ function render() {
       </main>
     </div>
     ${actPopover ? renderActPopover() : ""}
+    ${groupDialog ? renderGroupDialog() : ""}
     ${modal ? renderModal() : ""}
   `;
   bindApp();
@@ -485,9 +489,54 @@ function renderTimeline() {
       <button class="ghost-button big-action" data-modal="drinks">${icon("check")} Getränke</button>
     </div>
     ${acts.length ? renderTimeGrid(acts) : ""}
+    ${renderGroupPanel()}
     <section class="grid">
       ${acts.length ? renderStageRows(acts) : `<div class="empty">Noch keine Auftritte für ${dayLabel(selectedDay)} eingetragen.</div>`}
     </section>
+  `;
+}
+
+function activeGroupFor(profileId = sessionId) {
+  return state.groups.find((group) => group.members.includes(profileId)) || null;
+}
+
+function cleanupEmptyGroups() {
+  state.groups = state.groups.filter((group) => group.members.length > 0);
+}
+
+function renderGroupPanel() {
+  const activeGroup = activeGroupFor();
+  return `
+    <section class="panel group-panel">
+      <div class="panel-header">
+        <div>
+          <h3>Gruppen Ansicht</h3>
+          <p class="muted">Du kannst immer nur in einer Gruppe gleichzeitig sein.</p>
+        </div>
+        <button class="primary-button" data-modal="group">${icon("plus")} Gruppe erstellen</button>
+      </div>
+      ${state.groups.length ? `<div class="group-list">
+        ${state.groups.map((group) => renderGroupCard(group, activeGroup?.id === group.id)).join("")}
+      </div>` : `<div class="empty">Noch keine Gruppe erstellt.</div>`}
+    </section>
+  `;
+}
+
+function renderGroupCard(group, isActive) {
+  const creator = state.profiles.find((profile) => profile.id === group.creatorId);
+  const members = group.members
+    .map((memberId) => state.profiles.find((profile) => profile.id === memberId))
+    .filter(Boolean);
+  return `
+    <button class="group-card ${isActive ? "active" : ""}" data-group-info="${group.id}">
+      <div>
+        <strong>${escapeHtml(group.name)}</strong>
+        <span class="muted">Erstellt von ${escapeHtml(creator?.name || "Unbekannt")}</span>
+      </div>
+      <div class="group-members">
+        ${members.map((profile) => `<span class="chip ${profile.id === sessionId ? "active" : ""}"><span class="profile-dot" style="background:${profile.color}"></span>${escapeHtml(profile.name)}</span>`).join("")}
+      </div>
+    </button>
   `;
 }
 
@@ -754,6 +803,7 @@ function renderModal() {
     : modal.type === "profile" ? "Profil anlegen"
     : modal.type === "stage" ? "Bühne anlegen"
     : modal.type === "drinks" ? "Getränke zählen"
+    : modal.type === "group" ? "Gruppe erstellen"
     : "Zeltzeit eintragen";
   return `
     <div class="modal-backdrop" data-close-modal>
@@ -767,6 +817,38 @@ function renderModal() {
         ${modal.type === "stage" ? renderStageForm() : ""}
         ${modal.type === "tent" ? renderTentForm() : ""}
         ${modal.type === "drinks" ? renderDrinksCounter() : ""}
+        ${modal.type === "group" ? renderGroupForm() : ""}
+      </div>
+    </div>
+  `;
+}
+
+function renderGroupDialog() {
+  const group = state.groups.find((item) => item.id === groupDialog);
+  if (!group) return "";
+  const creator = state.profiles.find((profile) => profile.id === group.creatorId);
+  const members = group.members
+    .map((memberId) => state.profiles.find((profile) => profile.id === memberId))
+    .filter(Boolean);
+  const joined = group.members.includes(sessionId);
+  const canDelete = group.creatorId === sessionId;
+  return `
+    <div class="modal-backdrop" data-close-group-dialog>
+      <div class="modal-card group-detail" role="dialog" aria-modal="true" aria-label="${escapeHtml(group.name)}" data-group-dialog-card>
+        <div class="panel-header">
+          <div>
+            <h3>${escapeHtml(group.name)}</h3>
+            <p class="muted">Erstellt von ${escapeHtml(creator?.name || "Unbekannt")}</p>
+          </div>
+          <button class="icon-button" title="Schließen" data-close-group-dialog>×</button>
+        </div>
+        <div class="group-member-list">
+          ${members.length ? members.map((profile) => `<div class="group-member-row"><span><span class="profile-dot" style="background:${profile.color}"></span>${escapeHtml(profile.name)}</span>${profile.id === group.creatorId ? `<span class="chip active">Ersteller</span>` : ""}</div>`).join("") : `<div class="empty">Noch niemand dabei.</div>`}
+        </div>
+        <div class="button-row">
+          ${joined ? `<button class="danger-button" data-leave-group="${group.id}">Austreten</button>` : `<button class="primary-button" data-join-group="${group.id}">${icon("check")} Dabei sein</button>`}
+          ${canDelete ? `<button class="danger-button" data-delete-group="${group.id}">${icon("trash")} Gruppe löschen</button>` : ""}
+        </div>
       </div>
     </div>
   `;
@@ -856,6 +938,20 @@ function renderTentForm() {
       </label>
       <div class="full button-row">
         <button class="primary-button" type="submit">${icon("tent")} Eintragen</button>
+        <button class="ghost-button" type="button" data-close-modal>Abbrechen</button>
+      </div>
+    </form>
+  `;
+}
+
+function renderGroupForm() {
+  return `
+    <form class="grid" data-form="group">
+      <label>Gruppenname
+        <input name="name" required maxlength="40" placeholder="z. B. Treffpunkt Utopia">
+      </label>
+      <div class="button-row">
+        <button class="primary-button" type="submit">${icon("check")} Erstellen</button>
         <button class="ghost-button" type="button" data-close-modal>Abbrechen</button>
       </div>
     </form>
@@ -976,12 +1072,33 @@ function bindApp() {
     button.addEventListener("click", openInfo);
   });
 
+  app.querySelectorAll("[data-group-info]").forEach((button) => {
+    button.addEventListener("click", () => {
+      groupDialog = button.dataset.groupInfo;
+      modal = null;
+      actPopover = null;
+      render();
+    });
+  });
+
   app.querySelector("[data-close-act-popover]")?.addEventListener("click", () => {
     actPopover = null;
     render();
   });
 
   app.querySelector("[data-act-popover-card]")?.addEventListener("click", (event) => {
+    event.stopPropagation();
+  });
+
+  app.querySelectorAll("[data-close-group-dialog]").forEach((element) => {
+    element.addEventListener("click", (event) => {
+      if (event.target.closest("[data-group-dialog-card]") && !event.target.matches("[data-close-group-dialog]")) return;
+      groupDialog = null;
+      render();
+    });
+  });
+
+  app.querySelector("[data-group-dialog-card]")?.addEventListener("click", (event) => {
     event.stopPropagation();
   });
 
@@ -1112,6 +1229,27 @@ function bindForms() {
     saveState();
     render();
   });
+
+  app.querySelector('[data-form="group"]')?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    state.groups.forEach((group) => {
+      group.members = group.members.filter((memberId) => memberId !== sessionId);
+    });
+    cleanupEmptyGroups();
+    const group = {
+      id: id(),
+      name: data.get("name").trim(),
+      creatorId: sessionId,
+      members: [sessionId],
+      createdAt: new Date().toISOString()
+    };
+    state.groups.push(group);
+    modal = null;
+    groupDialog = group.id;
+    saveState();
+    render();
+  });
 }
 
 function bindMutations() {
@@ -1234,6 +1372,45 @@ function bindMutations() {
     button.addEventListener("click", () => {
       const plan = profilePlan();
       plan.tents = plan.tents.filter((item) => item.id !== button.dataset.deleteTent);
+      saveState();
+      render();
+    });
+  });
+
+  app.querySelectorAll("[data-join-group]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const group = state.groups.find((item) => item.id === button.dataset.joinGroup);
+      if (!group) return;
+      state.groups.forEach((item) => {
+        item.members = item.members.filter((memberId) => memberId !== sessionId);
+      });
+      if (!group.members.includes(sessionId)) group.members.push(sessionId);
+      cleanupEmptyGroups();
+      groupDialog = group.id;
+      saveState();
+      render();
+    });
+  });
+
+  app.querySelectorAll("[data-leave-group]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const group = state.groups.find((item) => item.id === button.dataset.leaveGroup);
+      if (!group) return;
+      group.members = group.members.filter((memberId) => memberId !== sessionId);
+      cleanupEmptyGroups();
+      if (!state.groups.some((item) => item.id === group.id)) groupDialog = null;
+      saveState();
+      render();
+    });
+  });
+
+  app.querySelectorAll("[data-delete-group]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const group = state.groups.find((item) => item.id === button.dataset.deleteGroup);
+      if (!group || group.creatorId !== sessionId) return;
+      if (!confirm("Diese Gruppe löschen?")) return;
+      state.groups = state.groups.filter((item) => item.id !== group.id);
+      groupDialog = null;
       saveState();
       render();
     });
