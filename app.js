@@ -122,6 +122,7 @@ let toastTimer = null;
 let clockTimer = null;
 let adminPreviewUser = localStorage.getItem("festival-admin-preview-user") === "true";
 let theme = localStorage.getItem("festival-theme") || "dark";
+let collapsedStages = JSON.parse(localStorage.getItem("festival-collapsed-stages") || "{}");
 
 function createSeedState() {
   const adminId = id();
@@ -633,11 +634,14 @@ function renderActPopover() {
 function renderStageRows(acts) {
   const stages = state.stages.filter((stage) => acts.some((act) => act.stageId === stage.id));
   return `<div class="timeline">${stages.map((stage) => `
-    <div class="stage-row ${stageColorClass(stage)}">
-      <div class="stage-name">${escapeHtml(stage.name)}</div>
-      <div class="act-list">
+    <div class="stage-row ${stageColorClass(stage)} ${collapsedStages[stage.id] ? "collapsed" : ""}">
+      <button class="stage-name" data-toggle-stage="${stage.id}" aria-expanded="${collapsedStages[stage.id] ? "false" : "true"}">
+        <span>${escapeHtml(stage.name)}</span>
+        <span class="stage-toggle-label">${collapsedStages[stage.id] ? "Ausklappen" : "Einklappen"}</span>
+      </button>
+      ${collapsedStages[stage.id] ? "" : `<div class="act-list">
         ${acts.filter((act) => act.stageId === stage.id).map(renderActCard).join("")}
-      </div>
+      </div>`}
     </div>
   `).join("")}</div>`;
 }
@@ -1040,6 +1044,15 @@ function bindApp() {
     button.addEventListener("click", () => {
       selectedDay = button.dataset.day;
       saveState();
+      render();
+    });
+  });
+
+  app.querySelectorAll("[data-toggle-stage]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const stageId = button.dataset.toggleStage;
+      collapsedStages[stageId] = !collapsedStages[stageId];
+      localStorage.setItem("festival-collapsed-stages", JSON.stringify(collapsedStages));
       render();
     });
   });
