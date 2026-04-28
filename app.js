@@ -118,8 +118,10 @@ let selectedDay = state.selectedDay || DAYS[0].value;
 let modal = null;
 let actPopover = null;
 let groupDialog = null;
+let alcoholTest = null;
 let toastTimer = null;
 let clockTimer = null;
+let alcoholTimers = [];
 let adminPreviewUser = localStorage.getItem("festival-admin-preview-user") === "true";
 let theme = localStorage.getItem("festival-theme") || "dark";
 let expandedStages = JSON.parse(localStorage.getItem("festival-expanded-stages") || "{}");
@@ -297,6 +299,91 @@ function currentFestivalMinutesForSelectedDay() {
   return null;
 }
 
+function clearAlcoholTimers() {
+  alcoholTimers.forEach((timer) => clearTimeout(timer));
+  alcoholTimers = [];
+}
+
+function startAlcoholTest() {
+  clearAlcoholTimers();
+  const now = Date.now();
+  alcoholTest = {
+    phase: "game",
+    startAt: now,
+    endAt: now + 30000,
+    mugs: [],
+    hits: 0,
+    taps: 0,
+    spawned: 0,
+    result: null
+  };
+  spawnMug();
+  scheduleAlcoholTick();
+  render();
+}
+
+function scheduleAlcoholTick() {
+  clearAlcoholTimers();
+  const tick = () => {
+    if (!alcoholTest || alcoholTest.phase !== "game") return;
+    const now = Date.now();
+    alcoholTest.mugs = alcoholTest.mugs.filter((mug) => now - mug.createdAt < 1700);
+    if (now >= alcoholTest.endAt) {
+      finishAlcoholGame();
+      return;
+    }
+    if (Math.random() > 0.28) spawnMug();
+    render();
+    alcoholTimers.push(setTimeout(tick, 520));
+  };
+  alcoholTimers.push(setTimeout(tick, 520));
+}
+
+function spawnMug() {
+  if (!alcoholTest || alcoholTest.phase !== "game") return;
+  alcoholTest.spawned += 1;
+  alcoholTest.mugs.push({
+    id: id(),
+    x: 8 + Math.random() * 78,
+    y: 12 + Math.random() * 68,
+    size: 50 + Math.random() * 24,
+    createdAt: Date.now()
+  });
+}
+
+function finishAlcoholGame() {
+  if (!alcoholTest) return;
+  const hits = alcoholTest.hits;
+  const taps = alcoholTest.taps;
+  const spawned = Math.max(1, alcoholTest.spawned);
+  const hitRate = hits / spawned;
+  const precision = taps ? hits / taps : 0;
+  const score = Math.round(((hitRate * 0.58) + (precision * 0.42)) * 100);
+  alcoholTest.phase = "calculating";
+  alcoholTest.result = { hits, taps, spawned, hitRate, precision, score, level: alcoholLevel(score, hits, taps) };
+  clearAlcoholTimers();
+  alcoholTimers.push(setTimeout(() => {
+    if (!alcoholTest) return;
+    alcoholTest.phase = "result";
+    render();
+  }, 5000));
+  render();
+}
+
+function alcoholLevel(score, hits, taps) {
+  if (taps === 0) return "Zen-Meister oder Handy verloren";
+  if (score >= 82) return "Nüchtern genug für den Timetable";
+  if (score >= 64) return "Festivalwarm";
+  if (score >= 46) return "Leicht schief, aber motiviert";
+  if (score >= 28) return "Zelt-Navigation empfohlen";
+  if (hits > 0) return "Bierkrug war schneller als du";
+  return "Akuter Pommesbedarf";
+}
+
+function timeLeftSeconds(endAt) {
+  return Math.max(0, Math.ceil((endAt - Date.now()) / 1000));
+}
+
 function currentTentDay() {
   const today = localDateKey();
   return DAYS.some((day) => day.value === today) ? today : selectedDay;
@@ -374,6 +461,7 @@ function render() {
     </div>
     ${actPopover ? renderActPopover() : ""}
     ${groupDialog ? renderGroupDialog() : ""}
+    ${alcoholTest ? renderAlcoholTest() : ""}
     ${modal ? renderModal() : ""}
   `;
   bindApp();
@@ -488,6 +576,7 @@ function renderTimeline() {
       <button class="${tentActive ? "danger-button" : "primary-button"} big-action" data-toggle-tent>${icon("tent")} ${tentActive ? "Zelt verlassen" : "Beim Zelt"}</button>
       <button class="soft-button big-action" data-beer-pickup ${beerLocked ? "disabled" : ""}>${icon("plus")} ${beerLocked ? "Kurz warten" : "Bier holen"}</button>
       <button class="ghost-button big-action" data-modal="drinks">${icon("check")} Getränke</button>
+      <button class="ghost-button big-action" data-start-alcohol-test>Level</button>
     </div>
     ${acts.length ? renderTimeGrid(acts) : ""}
     ${renderGroupPanel()}
@@ -858,6 +947,58 @@ function renderGroupDialog() {
   `;
 }
 
+function renderAlcoholTest() {
+  if (alcoholTest.phase === "game") {
+    return `
+      <div class="alcohol-backdrop" data-alcohol-arena>
+        <div class="alcohol-card alcohol-game">
+          <div class="alcohol-head">
+            <div>
+              <h3>Alkoholisierungs Level</h3>
+              <p class="muted">Bierkrüge antippen. Das Fenster bleibt bis zum Ende offen.</p>
+            </div>
+            <strong>${timeLeftSeconds(alcoholTest.endAt)}s</strong>
+          </div>
+          <div class="mug-arena">
+            ${alcoholTest.mugs.map((mug) => `<button class="mug-button" data-mug-id="${mug.id}" style="left:${mug.x}%;top:${mug.y}%;width:${mug.size}px;height:${mug.size}px">🍺</button>`).join("")}
+          </div>
+          <div class="alcohol-stats">
+            <span>Treffer: ${alcoholTest.hits}</span>
+            <span>Taps: ${alcoholTest.taps}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  if (alcoholTest.phase === "calculating") {
+    return `
+      <div class="alcohol-backdrop">
+        <div class="alcohol-card">
+          <h3>Dein Level wird berechnet</h3>
+          <div class="loading-bar"><span></span></div>
+          <p class="muted">Trefferquote, wilde Display-Taps und Festivalphysik werden ausgewertet.</p>
+        </div>
+      </div>
+    `;
+  }
+  const result = alcoholTest.result;
+  return `
+    <div class="alcohol-backdrop">
+      <div class="alcohol-card">
+        <p class="eyebrow">Ergebnis</p>
+        <h3>${escapeHtml(result.level)}</h3>
+        <div class="grid three">
+          <div class="stat"><span class="muted">Score</span><strong>${result.score}%</strong></div>
+          <div class="stat"><span class="muted">Treffer</span><strong>${result.hits}</strong></div>
+          <div class="stat"><span class="muted">Taps</span><strong>${result.taps}</strong></div>
+        </div>
+        <p class="muted">Getroffene Krüge: ${result.hits} von ${result.spawned}. Präzision: ${Math.round(result.precision * 100)}%.</p>
+        <button class="primary-button" data-close-alcohol-test>Fertig</button>
+      </div>
+    </div>
+  `;
+}
+
 function renderActForm() {
   const act = state.acts.find((item) => item.id === modal.actId) || { day: selectedDay, start: "", end: "", artist: "", stageId: state.stages[0]?.id || "", note: "" };
   return `
@@ -1151,6 +1292,36 @@ function bindApp() {
   app.querySelector("[data-toggle-theme]")?.addEventListener("click", () => {
     theme = theme === "dark" ? "light" : "dark";
     localStorage.setItem("festival-theme", theme);
+    render();
+  });
+
+  app.querySelector("[data-start-alcohol-test]")?.addEventListener("click", () => {
+    modal = null;
+    actPopover = null;
+    groupDialog = null;
+    startAlcoholTest();
+  });
+
+  app.querySelector("[data-alcohol-arena]")?.addEventListener("pointerdown", () => {
+    if (!alcoholTest || alcoholTest.phase !== "game") return;
+    alcoholTest.taps += 1;
+  }, { capture: true });
+
+  app.querySelectorAll("[data-mug-id]").forEach((button) => {
+    button.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      if (!alcoholTest || alcoholTest.phase !== "game") return;
+      const mugId = button.dataset.mugId;
+      if (!alcoholTest.mugs.some((mug) => mug.id === mugId)) return;
+      alcoholTest.hits += 1;
+      alcoholTest.mugs = alcoholTest.mugs.filter((mug) => mug.id !== mugId);
+      render();
+    });
+  });
+
+  app.querySelector("[data-close-alcohol-test]")?.addEventListener("click", () => {
+    alcoholTest = null;
+    clearAlcoholTimers();
     render();
   });
 
