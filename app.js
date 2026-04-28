@@ -122,7 +122,7 @@ let toastTimer = null;
 let clockTimer = null;
 let adminPreviewUser = localStorage.getItem("festival-admin-preview-user") === "true";
 let theme = localStorage.getItem("festival-theme") || "dark";
-let collapsedStages = JSON.parse(localStorage.getItem("festival-collapsed-stages") || "{}");
+let expandedStages = JSON.parse(localStorage.getItem("festival-expanded-stages") || "{}");
 
 function createSeedState() {
   const adminId = id();
@@ -634,14 +634,14 @@ function renderActPopover() {
 function renderStageRows(acts) {
   const stages = state.stages.filter((stage) => acts.some((act) => act.stageId === stage.id));
   return `<div class="timeline">${stages.map((stage) => `
-    <div class="stage-row ${stageColorClass(stage)} ${collapsedStages[stage.id] ? "collapsed" : ""}">
-      <button class="stage-name" data-toggle-stage="${stage.id}" aria-expanded="${collapsedStages[stage.id] ? "false" : "true"}">
+    <div class="stage-row ${stageColorClass(stage)} ${expandedStages[stage.id] ? "" : "collapsed"}">
+      <button class="stage-name" data-toggle-stage="${stage.id}" aria-expanded="${expandedStages[stage.id] ? "true" : "false"}">
         <span>${escapeHtml(stage.name)}</span>
-        <span class="stage-toggle-label">${collapsedStages[stage.id] ? "Ausklappen" : "Einklappen"}</span>
+        <span class="stage-toggle-label">${expandedStages[stage.id] ? "Einklappen" : "Ausklappen"}</span>
       </button>
-      ${collapsedStages[stage.id] ? "" : `<div class="act-list">
+      ${expandedStages[stage.id] ? `<div class="act-list">
         ${acts.filter((act) => act.stageId === stage.id).map(renderActCard).join("")}
-      </div>`}
+      </div>` : ""}
     </div>
   `).join("")}</div>`;
 }
@@ -1051,8 +1051,8 @@ function bindApp() {
   app.querySelectorAll("[data-toggle-stage]").forEach((button) => {
     button.addEventListener("click", () => {
       const stageId = button.dataset.toggleStage;
-      collapsedStages[stageId] = !collapsedStages[stageId];
-      localStorage.setItem("festival-collapsed-stages", JSON.stringify(collapsedStages));
+      expandedStages[stageId] = !expandedStages[stageId];
+      localStorage.setItem("festival-expanded-stages", JSON.stringify(expandedStages));
       render();
     });
   });
