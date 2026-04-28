@@ -318,6 +318,35 @@ p {
   gap: 9px;
 }
 
+.profile-color-panel {
+  margin-bottom: 16px;
+}
+
+.color-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.color-swatch {
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  border: 3px solid var(--line);
+  background: var(--swatch);
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.5);
+}
+
+.color-swatch.active {
+  border-color: var(--ink);
+  transform: scale(1.08);
+}
+
+.color-swatch:disabled {
+  opacity: 0.28;
+  filter: grayscale(0.85);
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -534,7 +563,7 @@ textarea {
   min-height: 74px;
   border: 1px solid rgba(23, 33, 29, 0.12);
   border-radius: var(--radius);
-  padding: 7px 8px;
+  padding: 7px 8px 18px;
   display: grid;
   align-content: center;
   gap: 2px;
@@ -546,6 +575,30 @@ textarea {
   touch-action: manipulation;
   user-select: none;
   -webkit-tap-highlight-color: rgba(23, 107, 91, 0.18);
+}
+
+.timeline-markers {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 7px;
+  display: grid;
+  gap: 3px;
+}
+
+.timeline-marker {
+  display: block;
+  height: 6px;
+  border-radius: 999px;
+}
+
+.timeline-marker.attending {
+  background: var(--profile-color);
+}
+
+.timeline-marker.maybe {
+  border-top: 4px dashed var(--profile-color);
+  height: 6px;
 }
 
 .time-act span,
@@ -975,7 +1028,7 @@ th {
 
   .time-act {
     min-height: 78px;
-    padding: 8px;
+    padding: 8px 8px 20px;
   }
 
   .time-act span {

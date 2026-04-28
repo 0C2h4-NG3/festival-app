@@ -1,7 +1,20 @@
 "use strict";
 
 const STORAGE_KEY = "festival-time-table:v1";
-const COLORS = ["#176b5b", "#a74719", "#487ca8", "#6f5aa8", "#b18318", "#39715d", "#a33131"];
+const COLORS = [
+  "#43b79d",
+  "#f06464",
+  "#6faee8",
+  "#a98ae8",
+  "#f0bf4c",
+  "#ff8f5a",
+  "#6dd17c",
+  "#f27ac2",
+  "#7bd7e8",
+  "#d1a15d",
+  "#9ad66b",
+  "#ffcf70"
+];
 const DAYS = [
   { value: "2026-06-05", label: "Fr, 05.06." },
   { value: "2026-06-06", label: "Sa, 06.06." },
@@ -135,10 +148,34 @@ function loadState() {
     if (!raw) return createSeedState();
     const nextState = { ...createSeedState(), ...JSON.parse(raw) };
     if (!nextState.acts.length) importOfficialTimetable(nextState);
+    ensureUniqueProfileColors(nextState);
     return nextState;
   } catch {
     return createSeedState();
   }
+}
+
+function ensureUniqueProfileColors(targetState) {
+  const used = new Set();
+  targetState.profiles.forEach((profile) => {
+    if (!COLORS.includes(profile.color) || used.has(profile.color)) {
+      profile.color = COLORS.find((color) => !used.has(color)) || profile.color;
+    }
+    used.add(profile.color);
+  });
+}
+
+function availableColorsFor(profileId) {
+  const usedByOthers = new Set(state.profiles.filter((profile) => profile.id !== profileId).map((profile) => profile.color));
+  return COLORS.map((color) => ({
+    color,
+    available: !usedByOthers.has(color)
+  }));
+}
+
+function nextAvailableColor() {
+  const used = new Set(state.profiles.map((profile) => profile.color));
+  return COLORS.find((color) => !used.has(color)) || "";
 }
 
 function importOfficialTimetable(targetState) {
@@ -500,11 +537,19 @@ function renderTimeGridRow(stage, acts, min, range, currentLeft) {
           const end = timeToFestivalMinutes(act.end || act.start);
           const left = ((start - min) / range) * 100;
           const width = Math.max(5, ((Math.max(end, start + 20) - start) / range) * 100);
-          return `<button class="time-act ${stageColorClass(stage)}" style="left:${left}%;width:${width}%" title="${escapeHtml(act.artist)} · ${formatTime(act.start, act.end)}" data-act-info="${act.id}"><span>${escapeHtml(act.artist)}</span><small>${formatTime(act.start, act.end)}</small></button>`;
+          return `<button class="time-act ${stageColorClass(stage)}" style="left:${left}%;width:${width}%" title="${escapeHtml(act.artist)} · ${formatTime(act.start, act.end)}" data-act-info="${act.id}"><span>${escapeHtml(act.artist)}</span><small>${formatTime(act.start, act.end)}</small>${renderTimelineMarkers(act.id)}</button>`;
         }).join("")}
       </div>
     </div>
   `;
+}
+
+function renderTimelineMarkers(actId) {
+  const markers = state.profiles
+    .map((profile) => ({ profile, status: profilePlan(profile.id).acts[actId] }))
+    .filter((item) => item.status === "attending" || item.status === "maybe");
+  if (!markers.length) return "";
+  return `<div class="timeline-markers">${markers.map(({ profile, status }) => `<span class="timeline-marker ${status}" style="--profile-color:${profile.color}" title="${escapeHtml(profile.name)}: ${status === "attending" ? "Dort" : "Vielleicht"}"></span>`).join("")}</div>`;
 }
 
 function renderActPopover() {
@@ -585,6 +630,7 @@ function renderActCard(act) {
 }
 
 function renderMyPlan() {
+  const profile = currentProfile();
   const plan = profilePlan();
   const pickedActs = state.acts
     .filter((act) => plan.acts[act.id])
@@ -595,6 +641,17 @@ function renderMyPlan() {
     .sort((a, b) => `${a.day}-${a.start}-${a.profile.name}`.localeCompare(`${b.day}-${b.start}-${b.profile.name}`));
   return `
     ${renderHeader("Mein Plan", "Auftritte und Zeltzeiten", `<button class="primary-button" data-modal="tent">${icon("tent")} Im Zelt bleiben</button>`)}
+    <section class="panel profile-color-panel">
+      <div class="panel-header">
+        <div>
+          <h3>Meine Farbe</h3>
+          <p class="muted">Diese Farbe markiert deine Auswahl in der Timeline. Jede Farbe kann nur einmal vergeben werden.</p>
+        </div>
+      </div>
+      <div class="color-picker">
+        ${availableColorsFor(profile.id).map(({ color, available }) => `<button class="color-swatch ${profile.color === color ? "active" : ""}" style="--swatch:${color}" data-set-color="${color}" ${available ? "" : "disabled"} title="${available ? "Farbe wählen" : "Schon vergeben"}"></button>`).join("")}
+      </div>
+    </section>
     <section class="grid two">
       <div class="panel">
         <div class="panel-header">
@@ -967,6 +1024,22 @@ function bindApp() {
     render();
   });
 
+  app.querySelectorAll("[data-set-color]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const profile = currentProfile();
+      const color = button.dataset.setColor;
+      const taken = state.profiles.some((item) => item.id !== profile.id && item.color === color);
+      if (taken) {
+        showToast("Diese Farbe ist schon vergeben.");
+        render();
+        return;
+      }
+      profile.color = color;
+      saveState();
+      render();
+    });
+  });
+
   bindForms();
   bindMutations();
   bindImportExport();
@@ -999,12 +1072,17 @@ function bindForms() {
   app.querySelector('[data-form="profile"]')?.addEventListener("submit", (event) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
+    const color = nextAvailableColor();
+    if (!color) {
+      showToast("Keine freie Profilfarbe mehr verfügbar.");
+      return;
+    }
     state.profiles.push({
       id: id(),
       name: data.get("name").trim(),
       pin: data.get("pin"),
       role: data.get("role"),
-      color: COLORS[state.profiles.length % COLORS.length]
+      color
     });
     modal = null;
     saveState();
