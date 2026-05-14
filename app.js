@@ -300,14 +300,40 @@ function isSupabaseSync() {
 }
 
 function supabaseRestUrl() {
-  return `${apiBase.trim().replace(/\/$/, "")}/rest/v1/app_state`;
+  const base = apiBase.trim().replace(/\/$/, "").replace(/\/rest\/v1$/i, "");
+  return `${base}/rest/v1/app_state`;
 }
 
 function supabaseHeaders(extra = {}) {
-  return {
+  const headers = {
     apikey: apiKey,
     ...extra,
   };
+  if (!apiKey.startsWith("sb_publishable_")) {
+    headers.Authorization = `Bearer ${apiKey}`;
+  }
+  return headers;
+}
+
+function setSyncStatus(message) {
+  localStorage.setItem("festival-sync-status", message);
+}
+
+function syncStatus() {
+  return localStorage.getItem("festival-sync-status") || "Noch nicht geprüft.";
+}
+
+function remoteErrorMessage(error) {
+  return error?.message ? String(error.message) : "Unbekannter Sync-Fehler";
+}
+
+async function readErrorBody(response) {
+  try {
+    const text = await response.text();
+    return text ? ` (${text.slice(0, 180)})` : "";
+  } catch {
+    return "";
+  }
 }
 
 async function loadRemoteState() {
@@ -324,7 +350,7 @@ async function loadRemoteState() {
           headers: supabaseHeaders({ Accept: "application/json" }),
         },
       );
-      if (!response.ok) throw new Error("Supabase state unavailable");
+      if (!response.ok) throw new Error(`Supabase Laden fehlgeschlagen: ${response.status}${await readErrorBody(response)}`);
       const rows = await response.json();
       payload = { state: rows[0]?.state || null };
     } else {
@@ -332,10 +358,11 @@ async function loadRemoteState() {
         cache: "no-store",
         headers: { Accept: "application/json" },
       });
-      if (!response.ok) throw new Error("Remote state unavailable");
+      if (!response.ok) throw new Error(`Backend Laden fehlgeschlagen: ${response.status}${await readErrorBody(response)}`);
       payload = await response.json();
     }
     remoteSyncAvailable = true;
+    setSyncStatus("Sync verbunden.");
     if (payload.state) {
       state = normalizeState(payload.state);
       selectedDay = state.selectedDay || selectedDay;
@@ -344,8 +371,9 @@ async function loadRemoteState() {
     } else if (state.initialized) {
       scheduleRemoteSave(0);
     }
-  } catch {
+  } catch (error) {
     remoteSyncAvailable = false;
+    setSyncStatus(remoteErrorMessage(error));
   } finally {
     remoteSyncInFlight = false;
   }
@@ -361,7 +389,7 @@ function scheduleRemoteSave(delay = 350) {
             method: "POST",
             headers: supabaseHeaders({
               "Content-Type": "application/json",
-              Prefer: "resolution=merge-duplicates",
+              Prefer: "resolution=merge-duplicates,return=representation",
             }),
             body: JSON.stringify({ id: "main", state }),
           })
@@ -370,9 +398,12 @@ function scheduleRemoteSave(delay = 350) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ state }),
           });
-      if (!response.ok) throw new Error("Remote save failed");
-    } catch {
+      if (!response.ok) throw new Error(`Sync Speichern fehlgeschlagen: ${response.status}${await readErrorBody(response)}`);
+      remoteSyncAvailable = true;
+      setSyncStatus("Sync gespeichert.");
+    } catch (error) {
       remoteSyncAvailable = false;
+      setSyncStatus(remoteErrorMessage(error));
       showToast("Backend-Sync gerade nicht erreichbar.");
     }
   }, delay);
@@ -2402,7 +2433,8 @@ function bindForms() {
       const data = new FormData(event.currentTarget);
       apiBase = String(data.get("apiBase") || "")
         .trim()
-        .replace(/\/$/, "");
+        .replace(/\/$/, "")
+        .replace(/\/rest\/v1$/i, "");
       apiKey = String(data.get("apiKey") || "").trim();
       localStorage.setItem(API_BASE_KEY, apiBase);
       localStorage.setItem(API_KEY_KEY, apiKey);
