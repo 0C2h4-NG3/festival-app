@@ -654,9 +654,19 @@ function render() {
 
 function bindQuickActionScroll() {
   const quickActions = app.querySelector(".quick-actions");
+  const timelinePanel = app.querySelector(".timeline-panel");
   if (!quickActions) return;
   const update = () => {
-    quickActions.classList.toggle("compact", window.scrollY > 120);
+    if (!timelinePanel) {
+      quickActions.style.setProperty("--quick-compact-progress", "0");
+      return;
+    }
+    const rect = timelinePanel.getBoundingClientRect();
+    const start = window.innerHeight * 0.5;
+    const end = window.innerHeight / 3;
+    const progress = Math.max(0, Math.min(1, (start - rect.top) / (start - end)));
+    quickActions.style.setProperty("--quick-compact-progress", progress.toFixed(3));
+    quickActions.classList.toggle("compact", progress >= 0.98);
   };
   update();
   window.removeEventListener("scroll", bindQuickActionScroll.lastHandler);
