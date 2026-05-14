@@ -375,6 +375,40 @@ p {
   gap: 14px;
 }
 
+.shopping-panel {
+  margin-top: 16px;
+}
+
+.shopping-list,
+.shopping-summary {
+  display: grid;
+  gap: 10px;
+}
+
+.shopping-item,
+.shopping-mini {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel-soft);
+  padding: 14px;
+}
+
+.shopping-item {
+  display: grid;
+  gap: 12px;
+}
+
+.shopping-item h3 {
+  overflow-wrap: anywhere;
+}
+
+.shopping-mini {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+
 .color-picker {
   display: flex;
   flex-wrap: wrap;

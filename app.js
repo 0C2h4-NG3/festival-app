@@ -155,6 +155,7 @@ function createSeedState() {
     ],
     acts: [],
     groups: [],
+    shoppingItems: [],
     plans: {},
     adminId,
     initialized: false,
@@ -176,6 +177,7 @@ function loadState() {
 function normalizeState(value) {
   const nextState = { ...createSeedState(), ...value };
   if (!Array.isArray(nextState.groups)) nextState.groups = [];
+  if (!Array.isArray(nextState.shoppingItems)) nextState.shoppingItems = [];
   if (!nextState.acts.length) importOfficialTimetable(nextState);
   ensureUniqueProfileColors(nextState);
   return nextState;
@@ -519,8 +521,7 @@ function timeLeftSeconds(endAt) {
 }
 
 function currentTentDay() {
-  const today = localDateKey();
-  return DAYS.some((day) => day.value === today) ? today : selectedDay;
+  return localDateKey();
 }
 
 function activeTentEntry(profileId = sessionId) {
@@ -535,7 +536,11 @@ function beerButtonLocked(profileId = sessionId) {
 }
 
 function dayLabel(day) {
-  return DAYS.find((item) => item.value === day)?.label || day;
+  const festivalDay = DAYS.find((item) => item.value === day);
+  if (festivalDay) return festivalDay.label;
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day || "");
+  if (!match) return day;
+  return `${match[3]}.${match[2]}.${match[1]}`;
 }
 
 function sortedActs(day = selectedDay) {
@@ -594,6 +599,7 @@ function render() {
         <nav class="nav">
           ${navButton("timeline", "schedule", "Timetable")}
           ${navButton("myplan", "tent", "Mein Plan")}
+          ${navButton("shopping", "plus", "Besorgungen")}
           ${canManage() ? navButton("profiles", "users", "Profile") : ""}
           ${canManage() ? navButton("settings", "settings", "Daten") : ""}
         </nav>
@@ -688,6 +694,7 @@ function renderLoginForm() {
 
 function renderView() {
   if (view === "myplan") return renderMyPlan();
+  if (view === "shopping") return renderShopping();
   if (view === "profiles" && canManage()) return renderProfiles();
   if (view === "settings" && canManage()) return renderSettings();
   return renderTimeline();
@@ -1057,6 +1064,81 @@ function renderMyPlan() {
           : `<div class="empty">Noch keine Zeltzeiten in der Gruppe eingetragen.</div>`
       }
     </section>
+  `;
+}
+
+function renderShopping() {
+  const items = [...state.shoppingItems].sort((a, b) => {
+    const neededDiff = b.supporters.length - a.supporters.length;
+    if (neededDiff) return neededDiff;
+    return (b.createdAt || "").localeCompare(a.createdAt || "");
+  });
+  return `
+    ${renderHeader("Besorgungen", "Einkaufswünsche der Gruppe", "")}
+    <section class="grid two">
+      <div class="panel">
+        <div class="panel-header">
+          <h3>Wunsch eintragen</h3>
+        </div>
+        <form class="form-grid" data-form="shopping">
+          <label>Was brauchen wir?
+            <input name="name" required maxlength="60" placeholder="z. B. Pavillon, Wasser, Tape">
+          </label>
+          <label>Menge / Hinweis
+            <input name="note" maxlength="80" placeholder="z. B. 2 Kisten, groß, dringend">
+          </label>
+          <div class="full button-row">
+            <button class="primary-button" type="submit">${icon("plus")} Wunsch hinzufügen</button>
+          </div>
+        </form>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <h3>Am meisten gebraucht</h3>
+        </div>
+        ${items.length ? `<div class="shopping-summary">${items.slice(0, 5).map(renderShoppingMini).join("")}</div>` : `<div class="empty">Noch keine Einkaufswünsche vorhanden.</div>`}
+      </div>
+    </section>
+    <section class="panel shopping-panel">
+      <div class="panel-header">
+        <h3>Alle Wünsche</h3>
+      </div>
+      ${items.length ? `<div class="shopping-list">${items.map(renderShoppingItem).join("")}</div>` : `<div class="empty">Trag den ersten Einkaufswunsch ein.</div>`}
+    </section>
+  `;
+}
+
+function renderShoppingMini(item) {
+  return `
+    <div class="shopping-mini">
+      <strong>${escapeHtml(item.name)}</strong>
+      <span class="chip active">${item.supporters.length} brauchen das</span>
+    </div>
+  `;
+}
+
+function renderShoppingItem(item) {
+  const creator = state.profiles.find((profile) => profile.id === item.creatorId);
+  const supporters = item.supporters
+    .map((profileId) => state.profiles.find((profile) => profile.id === profileId))
+    .filter(Boolean);
+  const joined = item.supporters.includes(sessionId);
+  const canDelete = item.creatorId === sessionId || canManage();
+  return `
+    <article class="shopping-item">
+      <div>
+        <h3>${escapeHtml(item.name)}</h3>
+        ${item.note ? `<p class="muted">${escapeHtml(item.note)}</p>` : ""}
+        <p class="muted">Eingetragen von ${escapeHtml(creator?.name || "Unbekannt")}</p>
+      </div>
+      <div class="chip-row">
+        ${supporters.map((profile) => `<span class="chip ${profile.id === sessionId ? "active" : ""}"><span class="profile-dot" style="background:${profile.color}"></span>${escapeHtml(profile.name)}</span>`).join("")}
+      </div>
+      <div class="button-row">
+        <button class="${joined ? "danger-button" : "soft-button"}" data-toggle-shopping="${item.id}">${joined ? "Nicht mehr" : "Brauch ich auch"}</button>
+        ${canDelete ? `<button class="icon-button" title="Löschen" data-delete-shopping="${item.id}">${icon("trash", "Löschen")}</button>` : ""}
+      </div>
+    </article>
   `;
 }
 
@@ -1787,6 +1869,25 @@ function bindForms() {
       loadRemoteState();
       showToast("Backend-Verbindung wird geprüft.");
     });
+
+  app
+    .querySelector('[data-form="shopping"]')
+    ?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const data = new FormData(event.currentTarget);
+      const name = String(data.get("name") || "").trim();
+      if (!name) return;
+      state.shoppingItems.push({
+        id: id(),
+        name,
+        note: String(data.get("note") || "").trim(),
+        creatorId: sessionId,
+        supporters: [sessionId],
+        createdAt: new Date().toISOString(),
+      });
+      saveState();
+      render();
+    });
 }
 
 function bindMutations() {
@@ -1967,6 +2068,31 @@ function bindMutations() {
       if (!confirm("Diese Gruppe löschen?")) return;
       state.groups = state.groups.filter((item) => item.id !== group.id);
       groupDialog = null;
+      saveState();
+      render();
+    });
+  });
+
+  app.querySelectorAll("[data-toggle-shopping]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const item = state.shoppingItems.find((entry) => entry.id === button.dataset.toggleShopping);
+      if (!item) return;
+      if (item.supporters.includes(sessionId)) {
+        item.supporters = item.supporters.filter((profileId) => profileId !== sessionId);
+      } else {
+        item.supporters.push(sessionId);
+      }
+      saveState();
+      render();
+    });
+  });
+
+  app.querySelectorAll("[data-delete-shopping]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const item = state.shoppingItems.find((entry) => entry.id === button.dataset.deleteShopping);
+      if (!item || (item.creatorId !== sessionId && !canManage())) return;
+      if (!confirm("Diesen Einkaufswunsch löschen?")) return;
+      state.shoppingItems = state.shoppingItems.filter((entry) => entry.id !== item.id);
       saveState();
       render();
     });
