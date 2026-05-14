@@ -385,17 +385,51 @@ p {
   gap: 10px;
 }
 
+.shopping-board {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+.shopping-list-column {
+  min-height: 180px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel-soft);
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.shopping-list-column.drag-over {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 3px rgba(67, 183, 157, 0.3);
+}
+
+.shopping-list-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
 .shopping-item,
 .shopping-mini {
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: var(--panel-soft);
+  background: var(--panel);
   padding: 14px;
 }
 
 .shopping-item {
   display: grid;
   gap: 12px;
+  cursor: grab;
+}
+
+.shopping-item.dragging {
+  opacity: 0.55;
 }
 
 .shopping-item h3 {

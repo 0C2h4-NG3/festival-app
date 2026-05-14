@@ -144,6 +144,10 @@ let remoteSyncInFlight = false;
 
 function createSeedState() {
   const adminId = id();
+  const shoppingLists = [
+    { id: "shopping-buy", name: "Einkaufen", createdBy: "system" },
+    { id: "shopping-bring", name: "Mitbringen", createdBy: "system" },
+  ];
   const seed = {
     version: 1,
     selectedDay: DAYS[0].value,
@@ -155,6 +159,7 @@ function createSeedState() {
     ],
     acts: [],
     groups: [],
+    shoppingLists,
     shoppingItems: [],
     plans: {},
     adminId,
@@ -177,10 +182,27 @@ function loadState() {
 function normalizeState(value) {
   const nextState = { ...createSeedState(), ...value };
   if (!Array.isArray(nextState.groups)) nextState.groups = [];
+  if (!Array.isArray(nextState.shoppingLists)) nextState.shoppingLists = [];
+  ensureShoppingLists(nextState);
   if (!Array.isArray(nextState.shoppingItems)) nextState.shoppingItems = [];
+  nextState.shoppingItems.forEach((item) => {
+    if (!item.listId) item.listId = nextState.shoppingLists[0]?.id || "shopping-buy";
+  });
   if (!nextState.acts.length) importOfficialTimetable(nextState);
   ensureUniqueProfileColors(nextState);
   return nextState;
+}
+
+function ensureShoppingLists(targetState) {
+  const defaults = [
+    { id: "shopping-buy", name: "Einkaufen", createdBy: "system" },
+    { id: "shopping-bring", name: "Mitbringen", createdBy: "system" },
+  ];
+  defaults.forEach((list) => {
+    if (!targetState.shoppingLists.some((item) => item.id === list.id)) {
+      targetState.shoppingLists.push(list);
+    }
+  });
 }
 
 function ensureUniqueProfileColors(targetState) {
@@ -694,7 +716,7 @@ function renderLoginForm() {
 
 function renderView() {
   if (view === "myplan") return renderMyPlan();
-  if (view === "shopping") return renderShopping();
+  if (view === "shopping") return renderShoppingBoard();
   if (view === "profiles" && canManage()) return renderProfiles();
   if (view === "settings" && canManage()) return renderSettings();
   return renderTimeline();
@@ -1140,6 +1162,81 @@ function renderShoppingItem(item) {
       </div>
     </article>
   `;
+}
+
+function renderShoppingBoard() {
+  const items = [...state.shoppingItems].sort((a, b) => {
+    const neededDiff = b.supporters.length - a.supporters.length;
+    if (neededDiff) return neededDiff;
+    return (b.createdAt || "").localeCompare(a.createdAt || "");
+  });
+  return `
+    ${renderHeader("Besorgungen", "Einkaufswünsche der Gruppe", "")}
+    <section class="grid two">
+      <div class="panel">
+        <div class="panel-header">
+          <h3>Wunsch eintragen</h3>
+        </div>
+        <form class="form-grid" data-form="shopping">
+          <label>Was brauchen wir?
+            <input name="name" required maxlength="60" placeholder="z. B. Pavillon, Wasser, Tape">
+          </label>
+          <label>Liste
+            <select name="listId">
+              ${state.shoppingLists.map((list) => `<option value="${list.id}">${escapeHtml(list.name)}</option>`).join("")}
+            </select>
+          </label>
+          <label>Menge / Hinweis
+            <input name="note" maxlength="80" placeholder="z. B. 2 Kisten, groß, dringend">
+          </label>
+          <div class="full button-row">
+            <button class="primary-button" type="submit">${icon("plus")} Wunsch hinzufügen</button>
+          </div>
+        </form>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <h3>Neue Liste</h3>
+        </div>
+        <form class="grid" data-form="shopping-list">
+          <label>Listenname
+            <input name="name" required maxlength="32" placeholder="z. B. Apotheke, Camping, Grill">
+          </label>
+          <button class="soft-button" type="submit">${icon("plus")} Liste hinzufügen</button>
+        </form>
+      </div>
+    </section>
+    <section class="panel shopping-panel">
+      <div class="panel-header">
+        <div>
+          <h3>Listen</h3>
+          <p class="muted">Wünsche können per Drag & Drop zwischen Listen verschoben werden.</p>
+        </div>
+      </div>
+      <div class="shopping-board">
+        ${state.shoppingLists.map((list) => renderShoppingListColumn(list, items.filter((item) => item.listId === list.id))).join("")}
+      </div>
+    </section>
+  `;
+}
+
+function renderShoppingListColumn(list, items) {
+  return `
+    <div class="shopping-list-column" data-shopping-drop="${list.id}">
+      <div class="shopping-list-head">
+        <h3>${escapeHtml(list.name)}</h3>
+        <span class="chip">${items.length}</span>
+      </div>
+      ${items.length ? `<div class="shopping-list">${items.map(renderShoppingBoardItem).join("")}</div>` : `<div class="empty">Noch nichts in dieser Liste.</div>`}
+    </div>
+  `;
+}
+
+function renderShoppingBoardItem(item) {
+  return renderShoppingItem(item).replace(
+    '<article class="shopping-item">',
+    `<article class="shopping-item" draggable="true" data-shopping-drag="${item.id}">`,
+  );
 }
 
 function renderProfiles() {
@@ -1881,9 +1978,31 @@ function bindForms() {
         id: id(),
         name,
         note: String(data.get("note") || "").trim(),
+        listId: String(data.get("listId") || state.shoppingLists[0]?.id || "shopping-buy"),
         creatorId: sessionId,
         supporters: [sessionId],
         createdAt: new Date().toISOString(),
+      });
+      saveState();
+      render();
+    });
+
+  app
+    .querySelector('[data-form="shopping-list"]')
+    ?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const data = new FormData(event.currentTarget);
+      const name = String(data.get("name") || "").trim();
+      if (!name) return;
+      const exists = state.shoppingLists.some((list) => list.name.toLowerCase() === name.toLowerCase());
+      if (exists) {
+        showToast("Diese Liste gibt es schon.");
+        return;
+      }
+      state.shoppingLists.push({
+        id: id(),
+        name,
+        createdBy: sessionId,
       });
       saveState();
       render();
@@ -2093,6 +2212,37 @@ function bindMutations() {
       if (!item || (item.creatorId !== sessionId && !canManage())) return;
       if (!confirm("Diesen Einkaufswunsch löschen?")) return;
       state.shoppingItems = state.shoppingItems.filter((entry) => entry.id !== item.id);
+      saveState();
+      render();
+    });
+  });
+
+  app.querySelectorAll("[data-shopping-drag]").forEach((item) => {
+    item.addEventListener("dragstart", (event) => {
+      event.dataTransfer.setData("text/plain", item.dataset.shoppingDrag);
+      event.dataTransfer.effectAllowed = "move";
+      item.classList.add("dragging");
+    });
+    item.addEventListener("dragend", () => {
+      item.classList.remove("dragging");
+    });
+  });
+
+  app.querySelectorAll("[data-shopping-drop]").forEach((column) => {
+    column.addEventListener("dragover", (event) => {
+      event.preventDefault();
+      column.classList.add("drag-over");
+    });
+    column.addEventListener("dragleave", () => {
+      column.classList.remove("drag-over");
+    });
+    column.addEventListener("drop", (event) => {
+      event.preventDefault();
+      column.classList.remove("drag-over");
+      const itemId = event.dataTransfer.getData("text/plain");
+      const item = state.shoppingItems.find((entry) => entry.id === itemId);
+      if (!item) return;
+      item.listId = column.dataset.shoppingDrop;
       saveState();
       render();
     });
