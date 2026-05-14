@@ -136,6 +136,7 @@ let theme = localStorage.getItem("festival-theme") || "dark";
 let expandedStages = JSON.parse(
   localStorage.getItem("festival-expanded-stages") || "{}",
 );
+let selectedShoppingList = localStorage.getItem("festival-selected-shopping-list") || "all";
 let apiBase = localStorage.getItem(API_BASE_KEY) || DEFAULT_API_BASE;
 let apiKey = localStorage.getItem(API_KEY_KEY) || SUPABASE_PUBLIC_KEY;
 let remoteSyncAvailable = false;
@@ -161,6 +162,7 @@ function createSeedState() {
     groups: [],
     shoppingLists,
     shoppingItems: [],
+    shoppingArchive: [],
     plans: {},
     adminId,
     initialized: false,
@@ -185,8 +187,10 @@ function normalizeState(value) {
   if (!Array.isArray(nextState.shoppingLists)) nextState.shoppingLists = [];
   ensureShoppingLists(nextState);
   if (!Array.isArray(nextState.shoppingItems)) nextState.shoppingItems = [];
+  if (!Array.isArray(nextState.shoppingArchive)) nextState.shoppingArchive = [];
   nextState.shoppingItems.forEach((item) => {
     if (!item.listId) item.listId = nextState.shoppingLists[0]?.id || "shopping-buy";
+    if (typeof item.done !== "boolean") item.done = false;
   });
   if (!nextState.acts.length) importOfficialTimetable(nextState);
   ensureUniqueProfileColors(nextState);
@@ -1157,6 +1161,7 @@ function renderShoppingItem(item) {
         ${supporters.map((profile) => `<span class="chip ${profile.id === sessionId ? "active" : ""}"><span class="profile-dot" style="background:${profile.color}"></span>${escapeHtml(profile.name)}</span>`).join("")}
       </div>
       <div class="button-row">
+        <label class="done-toggle"><input type="checkbox" data-toggle-shopping-done="${item.id}" ${item.done ? "checked" : ""}> Erledigt</label>
         <button class="${joined ? "danger-button" : "soft-button"}" data-toggle-shopping="${item.id}">${joined ? "Nicht mehr" : "Brauch ich auch"}</button>
         ${canDelete ? `<button class="icon-button" title="Löschen" data-delete-shopping="${item.id}">${icon("trash", "Löschen")}</button>` : ""}
       </div>
@@ -1165,11 +1170,18 @@ function renderShoppingItem(item) {
 }
 
 function renderShoppingBoard() {
+  if (selectedShoppingList !== "all" && !state.shoppingLists.some((list) => list.id === selectedShoppingList)) {
+    selectedShoppingList = "all";
+    localStorage.setItem("festival-selected-shopping-list", selectedShoppingList);
+  }
   const items = [...state.shoppingItems].sort((a, b) => {
     const neededDiff = b.supporters.length - a.supporters.length;
     if (neededDiff) return neededDiff;
     return (b.createdAt || "").localeCompare(a.createdAt || "");
   });
+  const visibleLists = selectedShoppingList === "all"
+    ? state.shoppingLists
+    : state.shoppingLists.filter((list) => list.id === selectedShoppingList);
   return `
     ${renderHeader("Besorgungen", "Einkaufswünsche der Gruppe", "")}
     <section class="grid two">
@@ -1212,10 +1224,22 @@ function renderShoppingBoard() {
           <h3>Listen</h3>
           <p class="muted">Wünsche können per Drag & Drop zwischen Listen verschoben werden.</p>
         </div>
+        <label class="list-filter">Anzeigen
+          <select data-shopping-list-filter>
+            <option value="all" ${selectedShoppingList === "all" ? "selected" : ""}>Alle Listen</option>
+            ${state.shoppingLists.map((list) => `<option value="${list.id}" ${selectedShoppingList === list.id ? "selected" : ""}>${escapeHtml(list.name)}</option>`).join("")}
+          </select>
+        </label>
+      </div>
+      <div class="button-row export-row">
+        <button class="primary-button" data-archive-shopping-done>${icon("check")} Erledigtes archivieren</button>
+        <button class="soft-button" data-export-shopping-image>${icon("download")} Als Bild</button>
+        <button class="ghost-button" data-export-shopping-pdf>${icon("download")} Als PDF</button>
       </div>
       <div class="shopping-board">
-        ${state.shoppingLists.map((list) => renderShoppingListColumn(list, items.filter((item) => item.listId === list.id))).join("")}
+        ${visibleLists.map((list) => renderShoppingListColumn(list, items.filter((item) => item.listId === list.id))).join("")}
       </div>
+      ${renderShoppingArchive()}
     </section>
   `;
 }
@@ -1235,8 +1259,204 @@ function renderShoppingListColumn(list, items) {
 function renderShoppingBoardItem(item) {
   return renderShoppingItem(item).replace(
     '<article class="shopping-item">',
-    `<article class="shopping-item" draggable="true" data-shopping-drag="${item.id}">`,
+    `<article class="shopping-item ${item.done ? "done" : ""}" draggable="true" data-shopping-drag="${item.id}">`,
   );
+}
+
+function renderShoppingArchive() {
+  const archiveGroups = selectedShoppingArchiveGroups();
+  if (!archiveGroups.length) return `<div class="shopping-archive"><div class="empty">Noch nichts archiviert.</div></div>`;
+  return `
+    <div class="shopping-archive">
+      <h3>Archiv</h3>
+      ${archiveGroups.map((group) => `
+        <section class="archive-group">
+          <h4>${escapeHtml(formatArchiveDate(group.archivedAt))}</h4>
+          <div class="shopping-list">
+            ${group.items.map((item) => `<article class="shopping-item archived"><h3>${escapeHtml(item.name)}</h3>${item.note ? `<p class="muted">${escapeHtml(item.note)}</p>` : ""}<p class="muted">${escapeHtml(group.listName)}</p></article>`).join("")}
+          </div>
+        </section>
+      `).join("")}
+    </div>
+  `;
+}
+
+function selectedShoppingArchiveGroups() {
+  return state.shoppingArchive
+    .filter((group) => selectedShoppingList === "all" || group.listId === selectedShoppingList)
+    .slice()
+    .sort((a, b) => (b.archivedAt || "").localeCompare(a.archivedAt || ""));
+}
+
+function formatArchiveDate(value) {
+  if (!value) return "Archiviert";
+  return new Date(value).toLocaleString("de-DE", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
+function selectedShoppingExportLists() {
+  const lists = selectedShoppingList === "all"
+    ? state.shoppingLists
+    : state.shoppingLists.filter((list) => list.id === selectedShoppingList);
+  return lists.map((list) => ({
+    ...list,
+    items: state.shoppingItems
+      .filter((item) => item.listId === list.id)
+      .sort((a, b) => b.supporters.length - a.supporters.length),
+  }));
+}
+
+function shoppingExportTitle() {
+  if (selectedShoppingList === "all") return "Alle Besorgungslisten";
+  return state.shoppingLists.find((list) => list.id === selectedShoppingList)?.name || "Besorgungsliste";
+}
+
+function shoppingExportHtml() {
+  const lists = selectedShoppingExportLists();
+  const generatedAt = new Date().toLocaleString("de-DE", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+  return `
+    <div class="shopping-export-doc">
+      <h1>${escapeHtml(shoppingExportTitle())}</h1>
+      <p>Festival Time Table · ${escapeHtml(generatedAt)}</p>
+      ${lists.map((list) => `
+        <section>
+          <h2>${escapeHtml(list.name)}</h2>
+          ${list.items.length ? `<table>
+            <thead><tr><th>Wunsch</th><th>Hinweis</th><th>Benötigt von</th></tr></thead>
+            <tbody>${list.items.map((item) => {
+              const supporters = item.supporters
+                .map((profileId) => state.profiles.find((profile) => profile.id === profileId)?.name)
+                .filter(Boolean)
+                .join(", ");
+              return `<tr><td>${escapeHtml(item.name)}</td><td>${escapeHtml(item.note || "")}</td><td>${escapeHtml(supporters || "-")}</td></tr>`;
+            }).join("")}</tbody>
+          </table>` : `<p>Keine Einträge.</p>`}
+        </section>
+      `).join("")}
+    </div>
+  `;
+}
+
+function exportShoppingImage() {
+  const html = shoppingExportHtml();
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1600">
+      <foreignObject width="100%" height="100%">
+        <div xmlns="http://www.w3.org/1999/xhtml">
+          <style>
+            body{margin:0}
+            .shopping-export-doc{font-family:Arial,sans-serif;background:#ffffff;color:#17211d;padding:42px;width:1116px;min-height:1516px}
+            h1{font-size:42px;margin:0 0 8px}
+            h2{font-size:28px;margin:30px 0 12px}
+            p{color:#64706a;font-size:18px}
+            table{width:100%;border-collapse:collapse;font-size:20px}
+            th,td{border:1px solid #d8e2dc;padding:12px;text-align:left;vertical-align:top}
+            th{background:#eef4ef}
+          </style>
+          ${html}
+        </div>
+      </foreignObject>
+    </svg>`;
+  const image = new Image();
+  const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  image.onload = () => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 1200;
+    canvas.height = 1600;
+    const context = canvas.getContext("2d");
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(image, 0, 0);
+    URL.revokeObjectURL(url);
+    canvas.toBlob((pngBlob) => {
+      if (!pngBlob) return;
+      downloadBlob(pngBlob, `${safeFileName(shoppingExportTitle())}.png`);
+    }, "image/png");
+  };
+  image.src = url;
+}
+
+function exportShoppingPdf() {
+  const printWindow = window.open("", "_blank");
+  if (!printWindow) {
+    showToast("Popup blockiert. Bitte Popups erlauben.");
+    return;
+  }
+  printWindow.document.write(`
+    <!doctype html>
+    <html lang="de">
+      <head>
+        <meta charset="utf-8">
+        <title>${escapeHtml(shoppingExportTitle())}</title>
+        <style>
+          body{font-family:Arial,sans-serif;color:#17211d;margin:32px}
+          h1{font-size:30px;margin:0 0 6px}
+          h2{font-size:22px;margin:26px 0 10px}
+          p{color:#64706a}
+          table{width:100%;border-collapse:collapse}
+          th,td{border:1px solid #d8e2dc;padding:9px;text-align:left;vertical-align:top}
+          th{background:#eef4ef}
+          @media print{button{display:none}}
+        </style>
+      </head>
+      <body>
+        ${shoppingExportHtml()}
+        <script>window.onload=()=>setTimeout(()=>window.print(),150)</script>
+      </body>
+    </html>
+  `);
+  printWindow.document.close();
+}
+
+function safeFileName(value) {
+  return value.toLowerCase().replace(/[^a-z0-9äöüß]+/gi, "-").replace(/^-|-$/g, "") || "besorgungsliste";
+}
+
+function downloadBlob(blob, fileName) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function archiveDoneShoppingItems() {
+  const listIds = selectedShoppingList === "all"
+    ? state.shoppingLists.map((list) => list.id)
+    : [selectedShoppingList];
+  const doneItems = state.shoppingItems.filter((item) => item.done && listIds.includes(item.listId));
+  if (!doneItems.length) {
+    showToast("Keine erledigten Einträge in dieser Auswahl.");
+    return;
+  }
+  const archivedAt = new Date().toISOString();
+  const groupsByList = new Map();
+  doneItems.forEach((item) => {
+    if (!groupsByList.has(item.listId)) groupsByList.set(item.listId, []);
+    groupsByList.get(item.listId).push({ ...item });
+  });
+  groupsByList.forEach((items, listId) => {
+    const list = state.shoppingLists.find((entry) => entry.id === listId);
+    state.shoppingArchive.push({
+      id: id(),
+      listId,
+      listName: list?.name || "Liste",
+      archivedAt,
+      archivedBy: sessionId,
+      items,
+    });
+  });
+  const doneIds = new Set(doneItems.map((item) => item.id));
+  state.shoppingItems = state.shoppingItems.filter((item) => !doneIds.has(item.id));
+  saveState();
+  render();
 }
 
 function renderProfiles() {
@@ -1787,6 +2007,16 @@ function bindApp() {
     render();
   });
 
+  app.querySelector("[data-shopping-list-filter]")?.addEventListener("change", (event) => {
+    selectedShoppingList = event.target.value;
+    localStorage.setItem("festival-selected-shopping-list", selectedShoppingList);
+    render();
+  });
+
+  app.querySelector("[data-export-shopping-image]")?.addEventListener("click", exportShoppingImage);
+  app.querySelector("[data-export-shopping-pdf]")?.addEventListener("click", exportShoppingPdf);
+  app.querySelector("[data-archive-shopping-done]")?.addEventListener("click", archiveDoneShoppingItems);
+
   app
     .querySelector("[data-start-alcohol-test]")
     ?.addEventListener("click", () => {
@@ -2201,6 +2431,16 @@ function bindMutations() {
       } else {
         item.supporters.push(sessionId);
       }
+      saveState();
+      render();
+    });
+  });
+
+  app.querySelectorAll("[data-toggle-shopping-done]").forEach((checkbox) => {
+    checkbox.addEventListener("change", () => {
+      const item = state.shoppingItems.find((entry) => entry.id === checkbox.dataset.toggleShoppingDone);
+      if (!item) return;
+      item.done = checkbox.checked;
       saveState();
       render();
     });
