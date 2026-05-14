@@ -1,6 +1,11 @@
 "use strict";
 
 const STORAGE_KEY = "festival-time-table:v1";
+const API_BASE_KEY = "festival-api-base";
+const API_KEY_KEY = "festival-api-key";
+const SUPABASE_URL = "https://iszylzztpmlezgqpbyas.supabase.co/rest/v1/";
+const SUPABASE_PUBLIC_KEY = "sb_publishable_qHGViBmiRPwix_yspZDEKg_N_G4EaE0";
+const DEFAULT_API_BASE = SUPABASE_URL;
 const COLORS = [
   "#43b79d",
   "#f06464",
@@ -131,6 +136,11 @@ let theme = localStorage.getItem("festival-theme") || "dark";
 let expandedStages = JSON.parse(
   localStorage.getItem("festival-expanded-stages") || "{}",
 );
+let apiBase = localStorage.getItem(API_BASE_KEY) || DEFAULT_API_BASE;
+let apiKey = localStorage.getItem(API_KEY_KEY) || SUPABASE_PUBLIC_KEY;
+let remoteSyncAvailable = false;
+let remoteSaveTimer = null;
+let remoteSyncInFlight = false;
 
 function createSeedState() {
   const adminId = id();
@@ -157,14 +167,18 @@ function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return createSeedState();
-    const nextState = { ...createSeedState(), ...JSON.parse(raw) };
-    if (!Array.isArray(nextState.groups)) nextState.groups = [];
-    if (!nextState.acts.length) importOfficialTimetable(nextState);
-    ensureUniqueProfileColors(nextState);
-    return nextState;
+    return normalizeState(JSON.parse(raw));
   } catch {
     return createSeedState();
   }
+}
+
+function normalizeState(value) {
+  const nextState = { ...createSeedState(), ...value };
+  if (!Array.isArray(nextState.groups)) nextState.groups = [];
+  if (!nextState.acts.length) importOfficialTimetable(nextState);
+  ensureUniqueProfileColors(nextState);
+  return nextState;
 }
 
 function ensureUniqueProfileColors(targetState) {
@@ -235,6 +249,95 @@ function importOfficialTimetable(targetState) {
 function saveState() {
   state.selectedDay = selectedDay;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  scheduleRemoteSave();
+}
+
+function apiStateUrl() {
+  const base = apiBase.trim().replace(/\/$/, "");
+  return `${base}/api/state`;
+}
+
+function isSupabaseSync() {
+  return apiBase.includes(".supabase.co");
+}
+
+function supabaseRestUrl() {
+  return `${apiBase.trim().replace(/\/$/, "")}/rest/v1/app_state`;
+}
+
+function supabaseHeaders(extra = {}) {
+  return {
+    apikey: apiKey,
+    ...extra,
+  };
+}
+
+async function loadRemoteState() {
+  if (remoteSyncInFlight) return;
+  remoteSyncInFlight = true;
+  try {
+    let payload;
+    if (isSupabaseSync()) {
+      if (!apiKey) throw new Error("Missing Supabase key");
+      const response = await fetch(
+        `${supabaseRestUrl()}?id=eq.main&select=state`,
+        {
+          cache: "no-store",
+          headers: supabaseHeaders({ Accept: "application/json" }),
+        },
+      );
+      if (!response.ok) throw new Error("Supabase state unavailable");
+      const rows = await response.json();
+      payload = { state: rows[0]?.state || null };
+    } else {
+      const response = await fetch(apiStateUrl(), {
+        cache: "no-store",
+        headers: { Accept: "application/json" },
+      });
+      if (!response.ok) throw new Error("Remote state unavailable");
+      payload = await response.json();
+    }
+    remoteSyncAvailable = true;
+    if (payload.state) {
+      state = normalizeState(payload.state);
+      selectedDay = state.selectedDay || selectedDay;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      render();
+    } else if (state.initialized) {
+      scheduleRemoteSave(0);
+    }
+  } catch {
+    remoteSyncAvailable = false;
+  } finally {
+    remoteSyncInFlight = false;
+  }
+}
+
+function scheduleRemoteSave(delay = 350) {
+  if (!remoteSyncAvailable) return;
+  clearTimeout(remoteSaveTimer);
+  remoteSaveTimer = setTimeout(async () => {
+    try {
+      const response = isSupabaseSync()
+        ? await fetch(supabaseRestUrl(), {
+            method: "POST",
+            headers: supabaseHeaders({
+              "Content-Type": "application/json",
+              Prefer: "resolution=merge-duplicates",
+            }),
+            body: JSON.stringify({ id: "main", state }),
+          })
+        : await fetch(apiStateUrl(), {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ state }),
+          });
+      if (!response.ok) throw new Error("Remote save failed");
+    } catch {
+      remoteSyncAvailable = false;
+      showToast("Backend-Sync gerade nicht erreichbar.");
+    }
+  }, delay);
 }
 
 function id() {
@@ -1031,6 +1134,19 @@ function renderSettings() {
         <p class="muted">GitHub Pages hostet diese App statisch. Profile, Timetable und Pläne werden deshalb im Browser gespeichert. Mit Export und Import kannst du den Stand sichern oder auf ein anderes Gerät übertragen.</p>
         <p class="muted">Der offizielle Rock-im-Park-2026-Timetable ist in der App hinterlegt und kann hier jederzeit ohne Duplikate nachgeladen werden.</p>
       </div>
+      <div class="panel">
+        <div class="panel-header"><h3>Backend Sync</h3></div>
+        <form class="grid" data-form="api-base">
+          <label>Backend oder Supabase URL
+            <input name="apiBase" value="${escapeHtml(apiBase)}" placeholder="https://dein-projekt.supabase.co">
+          </label>
+          <label>Supabase Publishable / anon Key
+            <input name="apiKey" value="${escapeHtml(apiKey)}" placeholder="nur bei Supabase nötig">
+          </label>
+          <button class="primary-button" type="submit">${icon("check")} Speichern & verbinden</button>
+          <p class="muted">${remoteSyncAvailable ? "Sync verbunden." : "Aktuell lokaler Speicher oder Sync nicht erreichbar."}</p>
+        </form>
+      </div>
     </section>
   `;
 }
@@ -1655,6 +1771,22 @@ function bindForms() {
       saveState();
       render();
     });
+
+  app
+    .querySelector('[data-form="api-base"]')
+    ?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const data = new FormData(event.currentTarget);
+      apiBase = String(data.get("apiBase") || "")
+        .trim()
+        .replace(/\/$/, "");
+      apiKey = String(data.get("apiKey") || "").trim();
+      localStorage.setItem(API_BASE_KEY, apiBase);
+      localStorage.setItem(API_KEY_KEY, apiKey);
+      remoteSyncAvailable = false;
+      loadRemoteState();
+      showToast("Backend-Verbindung wird geprüft.");
+    });
 }
 
 function bindMutations() {
@@ -1904,3 +2036,4 @@ function showToast(message) {
 }
 
 render();
+loadRemoteState();
