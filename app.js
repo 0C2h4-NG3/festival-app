@@ -19,6 +19,14 @@ const COLORS = [
   "#d1a15d",
   "#9ad66b",
   "#ffcf70",
+  "#ff6b9a",
+  "#8fddff",
+  "#c7f464",
+  "#ff9f1c",
+  "#b388ff",
+  "#4dd0e1",
+  "#ff7043",
+  "#90caf9",
 ];
 const DAYS = [
   { value: "2026-06-05", label: "Fr, 05.06." },
@@ -1077,10 +1085,19 @@ function renderMyPlan() {
     <section class="panel profile-color-panel">
       <div class="panel-header">
         <div>
-          <h3>Meine Farbe</h3>
-          <p class="muted">Diese Farbe markiert deine Auswahl in der Timeline. Jede Farbe kann nur einmal vergeben werden.</p>
+          <h3>Mein Profil</h3>
+          <p class="muted">Name und Farbe für deine Anzeige in der Gruppe.</p>
         </div>
       </div>
+      <form class="form-grid profile-settings-form" data-form="profile-settings">
+        <label>Name
+          <input name="name" required maxlength="40" value="${escapeHtml(profile.name)}">
+        </label>
+        <div class="button-row">
+          <button class="primary-button" type="submit">${icon("check")} Namen speichern</button>
+        </div>
+      </form>
+      <p class="muted">Diese Farbe markiert deine Auswahl in der Timeline. Jede Farbe kann nur einmal vergeben werden.</p>
       <div class="color-picker">
         ${availableColorsFor(profile.id)
           .map(
@@ -2432,6 +2449,21 @@ function bindForms() {
         createdBy: sessionId,
       });
       saveState();
+      render();
+    });
+
+  app
+    .querySelector('[data-form="profile-settings"]')
+    ?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const profile = currentProfile();
+      if (!profile) return;
+      const data = new FormData(event.currentTarget);
+      const name = String(data.get("name") || "").trim();
+      if (!name) return;
+      profile.name = name;
+      saveState();
+      showToast("Name gespeichert.");
       render();
     });
 }
