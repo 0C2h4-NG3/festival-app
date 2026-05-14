@@ -656,7 +656,11 @@ function profilePlan(profileId = sessionId) {
         localStorage.getItem(`festival-custom-theme:${profileId}`) ||
           '{"accent":"#43b79d","bg":"#0f1512","panel":"#18211d","ink":"#f2f7f3"}',
       ),
+      customThemes: [],
     };
+  }
+  if (!Array.isArray(state.plans[profileId].themeSettings.customThemes)) {
+    state.plans[profileId].themeSettings.customThemes = [];
   }
   if (
     state.plans[profileId].beerUnlockAt &&
@@ -751,17 +755,28 @@ function applyThemeSettings() {
   const root = document.documentElement;
   root.dataset.theme = theme;
   root.dataset.design = designTheme;
-  if (designTheme === "custom") {
-    root.style.setProperty("--accent", customTheme.accent);
-    root.style.setProperty("--accent-strong", customTheme.accent);
-    root.style.setProperty("--bg", customTheme.bg);
-    root.style.setProperty("--panel", customTheme.panel);
-    root.style.setProperty("--ink", customTheme.ink);
+  const savedCustom = currentThemeDesignValue();
+  const activeCustom = savedCustom || (designTheme === "custom" ? customTheme : null);
+  if (activeCustom) {
+    root.style.setProperty("--accent", activeCustom.accent);
+    root.style.setProperty("--accent-strong", activeCustom.accent);
+    root.style.setProperty("--bg", activeCustom.bg);
+    root.style.setProperty("--panel", activeCustom.panel);
+    root.style.setProperty("--ink", activeCustom.ink);
   } else {
     ["--accent", "--accent-strong", "--bg", "--panel", "--ink"].forEach((name) => {
       root.style.removeProperty(name);
     });
   }
+}
+
+function currentThemeDesignValue() {
+  if (designTheme.startsWith("custom:")) {
+    const customId = designTheme.slice("custom:".length);
+    const saved = currentThemeSettings().customThemes.find((item) => item.id === customId);
+    if (saved) return saved;
+  }
+  return null;
 }
 
 function scrollTimelineToNow() {
@@ -1347,6 +1362,7 @@ function renderShoppingItem(item) {
 }
 
 function renderPreferences() {
+  const settings = currentThemeSettings();
   const presets = [
     { id: "default", name: "Festival Default", description: "Ruhig, dunkel, gut lesbar" },
     { id: "neon", name: "Neon Nacht", description: "Kräftig und kontrastreich" },
@@ -1355,6 +1371,7 @@ function renderPreferences() {
     { id: "forest", name: "Forest", description: "Grün und entspannt" },
     { id: "custom", name: "Eigenes Theme", description: "Deine Farben" },
   ];
+  const personalThemes = settings.customThemes || [];
   return `
     ${renderHeader("Einstellungen", "Design und Darstellung", "")}
     <section class="grid two">
@@ -1379,6 +1396,13 @@ function renderPreferences() {
               <span class="muted">${escapeHtml(preset.description)}</span>
             </button>
           `).join("")}
+          ${personalThemes.map((item) => `
+            <button class="theme-choice ${designTheme === `custom:${item.id}` ? "active" : ""}" data-design-theme="custom:${item.id}">
+              <span class="theme-preview custom" style="--accent:${item.accent};--panel:${item.panel};--ink:${item.ink}"></span>
+              <strong>${escapeHtml(item.name)}</strong>
+              <span class="muted">Persönliches Theme</span>
+            </button>
+          `).join("")}
         </div>
       </div>
       <div class="panel">
@@ -1386,6 +1410,9 @@ function renderPreferences() {
           <h3>Eigenes Theme</h3>
         </div>
         <form class="form-grid" data-form="custom-theme">
+          <label class="full">Theme Name
+            <input name="name" required maxlength="32" placeholder="z. B. Camp Nacht">
+          </label>
           <label>Akzent
             <input name="accent" type="color" value="${escapeHtml(customTheme.accent)}">
           </label>
@@ -2680,7 +2707,11 @@ function bindForms() {
     ?.addEventListener("submit", (event) => {
       event.preventDefault();
       const data = new FormData(event.currentTarget);
-      customTheme = {
+      const name = String(data.get("name") || "").trim();
+      if (!name) return;
+      const themeValue = {
+        id: id(),
+        name,
         accent: String(data.get("accent") || "#43b79d"),
         bg: String(data.get("bg") || "#0f1512"),
         panel: String(data.get("panel") || "#18211d"),
@@ -2689,8 +2720,10 @@ function bindForms() {
       const profile = currentProfile();
       if (!profile) return;
       const settings = currentThemeSettings();
-      settings.custom = customTheme;
-      settings.design = "custom";
+      settings.custom = themeValue;
+      settings.customThemes.push(themeValue);
+      settings.design = `custom:${themeValue.id}`;
+      customTheme = themeValue;
       localStorage.setItem(`festival-custom-theme:${profile.id}`, JSON.stringify(customTheme));
       localStorage.setItem(`festival-design-theme:${profile.id}`, settings.design);
       saveState();
