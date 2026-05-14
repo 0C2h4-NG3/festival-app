@@ -143,6 +143,7 @@ let apiKey = localStorage.getItem(API_KEY_KEY) || SUPABASE_PUBLIC_KEY;
 let remoteSyncAvailable = false;
 let remoteSaveTimer = null;
 let remoteSyncInFlight = false;
+let timelineScrollLeft = 0;
 
 function createSeedState() {
   const adminId = id();
@@ -602,6 +603,7 @@ function profilePlan(profileId = sessionId) {
 }
 
 function render() {
+  rememberTimelineScroll();
   document.documentElement.dataset.theme = theme;
   const profile = currentProfile();
   if (!state.initialized || !profile) {
@@ -648,8 +650,19 @@ function render() {
     ${modal ? renderModal() : ""}
   `;
   bindApp();
+  restoreTimelineScroll();
   bindQuickActionScroll();
   syncClockTimer(true);
+}
+
+function rememberTimelineScroll() {
+  const scroller = app.querySelector?.(".time-grid-scroll");
+  if (scroller) timelineScrollLeft = scroller.scrollLeft;
+}
+
+function restoreTimelineScroll() {
+  const scroller = app.querySelector(".time-grid-scroll");
+  if (scroller) scroller.scrollLeft = timelineScrollLeft;
 }
 
 function bindQuickActionScroll() {
@@ -2037,10 +2050,15 @@ function bindApp() {
   app.querySelectorAll("[data-day]").forEach((button) => {
     button.addEventListener("click", () => {
       selectedDay = button.dataset.day;
+      timelineScrollLeft = 0;
       saveState();
       render();
     });
   });
+
+  app.querySelector(".time-grid-scroll")?.addEventListener("scroll", (event) => {
+    timelineScrollLeft = event.currentTarget.scrollLeft;
+  }, { passive: true });
 
   app.querySelectorAll("[data-toggle-stage]").forEach((button) => {
     button.addEventListener("click", () => {
