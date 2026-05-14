@@ -611,7 +611,7 @@ function render() {
   }
 
   app.innerHTML = `
-    <div class="layout">
+    <div class="layout ${view === "timeline" ? "timeline-view" : ""}">
       <aside class="sidebar">
         <div class="brand">
           <div class="brand-mark">RIP</div>
@@ -647,7 +647,20 @@ function render() {
     ${modal ? renderModal() : ""}
   `;
   bindApp();
+  bindQuickActionScroll();
   syncClockTimer(true);
+}
+
+function bindQuickActionScroll() {
+  const quickActions = app.querySelector(".quick-actions");
+  if (!quickActions) return;
+  const update = () => {
+    quickActions.classList.toggle("compact", window.scrollY > 120);
+  };
+  update();
+  window.removeEventListener("scroll", bindQuickActionScroll.lastHandler);
+  bindQuickActionScroll.lastHandler = update;
+  window.addEventListener("scroll", update, { passive: true });
 }
 
 function syncClockTimer(shouldRun) {

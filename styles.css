@@ -265,12 +265,14 @@ p {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
   margin: 0 0 16px;
+  transition: gap 0.2s ease, padding 0.2s ease;
 }
 
 .big-action {
   min-height: 58px;
   font-size: 1rem;
   font-weight: 850;
+  transition: min-height 0.2s ease, font-size 0.2s ease, padding 0.2s ease;
 }
 
 .compact-action {
@@ -1269,7 +1271,7 @@ th {
     position: sticky;
     top: 0;
     z-index: 10;
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     background: rgba(245, 247, 244, 0.96);
     border-bottom: 1px solid var(--line);
     padding: 10px 0;
@@ -1297,6 +1299,60 @@ th {
   .big-action {
     min-height: 58px;
     font-size: 1.05rem;
+  }
+
+  .quick-actions.compact {
+    gap: 6px;
+    padding: 6px 0;
+  }
+
+  .quick-actions.compact .big-action {
+    min-height: 42px;
+    font-size: 0.86rem;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  :root[data-theme="dark"] .quick-actions {
+    background: rgba(15, 21, 18, 0.96);
+  }
+
+  @supports (animation-timeline: scroll()) {
+    .timeline-view .quick-actions {
+      animation: quick-actions-compact linear both;
+      animation-timeline: scroll(root);
+      animation-range: 0 180px;
+    }
+
+    .timeline-view .quick-actions .big-action {
+      animation: quick-button-compact linear both;
+      animation-timeline: scroll(root);
+      animation-range: 0 180px;
+    }
+  }
+
+  @keyframes quick-actions-compact {
+    from {
+      gap: 10px;
+      padding-top: 10px;
+      padding-bottom: 10px;
+    }
+    to {
+      gap: 6px;
+      padding-top: 6px;
+      padding-bottom: 6px;
+    }
+  }
+
+  @keyframes quick-button-compact {
+    from {
+      min-height: 58px;
+      font-size: 1.05rem;
+    }
+    to {
+      min-height: 42px;
+      font-size: 0.86rem;
+    }
   }
 
   .stage-row {
