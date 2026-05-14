@@ -140,7 +140,9 @@ let clockTimer = null;
 let alcoholTimers = [];
 let adminPreviewUser =
   localStorage.getItem("festival-admin-preview-user") === "true";
-let theme = localStorage.getItem("festival-theme") || "dark";
+let theme = "dark";
+let designTheme = "default";
+let customTheme = { accent: "#43b79d", bg: "#0f1512", panel: "#18211d", ink: "#f2f7f3" };
 let expandedStages = JSON.parse(
   localStorage.getItem("festival-expanded-stages") || "{}",
 );
@@ -646,6 +648,16 @@ function profilePlan(profileId = sessionId) {
       tentBeer: 0,
       otherDrinks: 0,
     };
+  if (!state.plans[profileId].themeSettings) {
+    state.plans[profileId].themeSettings = {
+      mode: localStorage.getItem(`festival-theme:${profileId}`) || "dark",
+      design: localStorage.getItem(`festival-design-theme:${profileId}`) || "default",
+      custom: JSON.parse(
+        localStorage.getItem(`festival-custom-theme:${profileId}`) ||
+          '{"accent":"#43b79d","bg":"#0f1512","panel":"#18211d","ink":"#f2f7f3"}',
+      ),
+    };
+  }
   if (
     state.plans[profileId].beerUnlockAt &&
     state.plans[profileId].beerUnlockAt <= Date.now()
@@ -655,9 +667,23 @@ function profilePlan(profileId = sessionId) {
   return state.plans[profileId];
 }
 
+function currentThemeSettings() {
+  const profile = currentProfile();
+  if (!profile) return { mode: "dark", design: "default", custom: customTheme };
+  return profilePlan(profile.id).themeSettings;
+}
+
+function updateThemeGlobals() {
+  const settings = currentThemeSettings();
+  theme = settings.mode || "dark";
+  designTheme = settings.design || "default";
+  customTheme = settings.custom || customTheme;
+}
+
 function render() {
   rememberTimelineScroll();
-  document.documentElement.dataset.theme = theme;
+  updateThemeGlobals();
+  applyThemeSettings();
   const profile = currentProfile();
   if (!state.initialized || !profile) {
     app.innerHTML = renderAuth();
@@ -687,12 +713,12 @@ function render() {
           ${navButton("timeline", "schedule", "Timetable")}
           ${navButton("myplan", "tent", "Mein Plan")}
           ${navButton("shopping", "plus", "Besorgungen")}
+          ${navButton("preferences", "settings", "Einstellungen")}
           ${canManage() ? navButton("profiles", "users", "Profile") : ""}
           ${canManage() ? navButton("settings", "settings", "Daten") : ""}
         </nav>
         <div class="sidebar-footer">
           ${isAdmin() ? `<button class="soft-button" data-toggle-admin-view>${icon(adminPreviewUser ? "settings" : "users")} ${adminPreviewUser ? "Admin Ansicht" : "User Ansicht"}</button>` : ""}
-          <button class="soft-button" data-toggle-theme>${theme === "dark" ? "Hell nutzen" : "Dark Mode"}</button>
           <button class="ghost-button" data-action="logout">${icon("logout")} Abmelden</button>
         </div>
       </aside>
@@ -719,6 +745,23 @@ function rememberTimelineScroll() {
 function restoreTimelineScroll() {
   const scroller = app.querySelector(".time-grid-scroll");
   if (scroller) scroller.scrollLeft = timelineScrollLeft;
+}
+
+function applyThemeSettings() {
+  const root = document.documentElement;
+  root.dataset.theme = theme;
+  root.dataset.design = designTheme;
+  if (designTheme === "custom") {
+    root.style.setProperty("--accent", customTheme.accent);
+    root.style.setProperty("--accent-strong", customTheme.accent);
+    root.style.setProperty("--bg", customTheme.bg);
+    root.style.setProperty("--panel", customTheme.panel);
+    root.style.setProperty("--ink", customTheme.ink);
+  } else {
+    ["--accent", "--accent-strong", "--bg", "--panel", "--ink"].forEach((name) => {
+      root.style.removeProperty(name);
+    });
+  }
 }
 
 function scrollTimelineToNow() {
@@ -837,6 +880,7 @@ function renderLoginForm() {
 function renderView() {
   if (view === "myplan") return renderMyPlan();
   if (view === "shopping") return renderShoppingBoard();
+  if (view === "preferences") return renderPreferences();
   if (view === "profiles" && canManage()) return renderProfiles();
   if (view === "settings" && canManage()) return renderSettings();
   return renderTimeline();
@@ -1299,6 +1343,67 @@ function renderShoppingItem(item) {
         ${canDelete ? `<button class="icon-button" title="Löschen" data-delete-shopping="${item.id}">${icon("trash", "Löschen")}</button>` : ""}
       </div>
     </article>
+  `;
+}
+
+function renderPreferences() {
+  const presets = [
+    { id: "default", name: "Festival Default", description: "Ruhig, dunkel, gut lesbar" },
+    { id: "neon", name: "Neon Nacht", description: "Kräftig und kontrastreich" },
+    { id: "sunset", name: "Sunset", description: "Warm und orange" },
+    { id: "ocean", name: "Ocean", description: "Kühl und blau" },
+    { id: "forest", name: "Forest", description: "Grün und entspannt" },
+    { id: "custom", name: "Eigenes Theme", description: "Deine Farben" },
+  ];
+  return `
+    ${renderHeader("Einstellungen", "Design und Darstellung", "")}
+    <section class="grid two">
+      <div class="panel">
+        <div class="panel-header">
+          <h3>Hell oder Dunkel</h3>
+        </div>
+        <div class="segmented">
+          <button class="${theme === "dark" ? "active" : ""}" data-theme-mode="dark">Dunkel</button>
+          <button class="${theme === "light" ? "active" : ""}" data-theme-mode="light">Hell</button>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <h3>Theme Design</h3>
+        </div>
+        <div class="theme-grid">
+          ${presets.map((preset) => `
+            <button class="theme-choice ${designTheme === preset.id ? "active" : ""}" data-design-theme="${preset.id}">
+              <span class="theme-preview ${preset.id}"></span>
+              <strong>${escapeHtml(preset.name)}</strong>
+              <span class="muted">${escapeHtml(preset.description)}</span>
+            </button>
+          `).join("")}
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <h3>Eigenes Theme</h3>
+        </div>
+        <form class="form-grid" data-form="custom-theme">
+          <label>Akzent
+            <input name="accent" type="color" value="${escapeHtml(customTheme.accent)}">
+          </label>
+          <label>Hintergrund
+            <input name="bg" type="color" value="${escapeHtml(customTheme.bg)}">
+          </label>
+          <label>Flächen
+            <input name="panel" type="color" value="${escapeHtml(customTheme.panel)}">
+          </label>
+          <label>Text
+            <input name="ink" type="color" value="${escapeHtml(customTheme.ink)}">
+          </label>
+          <div class="full button-row">
+            <button class="primary-button" type="submit">${icon("check")} Eigenes Theme speichern</button>
+          </div>
+        </form>
+      </div>
+    </section>
   `;
 }
 
@@ -2285,10 +2390,28 @@ function bindApp() {
       render();
     });
 
-  app.querySelector("[data-toggle-theme]")?.addEventListener("click", () => {
-    theme = theme === "dark" ? "light" : "dark";
-    localStorage.setItem("festival-theme", theme);
-    render();
+  app.querySelectorAll("[data-theme-mode]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const profile = currentProfile();
+      if (!profile) return;
+      const settings = currentThemeSettings();
+      settings.mode = button.dataset.themeMode;
+      localStorage.setItem(`festival-theme:${profile.id}`, settings.mode);
+      saveState();
+      render();
+    });
+  });
+
+  app.querySelectorAll("[data-design-theme]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const profile = currentProfile();
+      if (!profile) return;
+      const settings = currentThemeSettings();
+      settings.design = button.dataset.designTheme;
+      localStorage.setItem(`festival-design-theme:${profile.id}`, settings.design);
+      saveState();
+      render();
+    });
   });
 
   app.querySelector("[data-shopping-list-filter]")?.addEventListener("change", (event) => {
@@ -2549,6 +2672,29 @@ function bindForms() {
       profile.name = name;
       saveState();
       showToast("Name gespeichert.");
+      render();
+    });
+
+  app
+    .querySelector('[data-form="custom-theme"]')
+    ?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const data = new FormData(event.currentTarget);
+      customTheme = {
+        accent: String(data.get("accent") || "#43b79d"),
+        bg: String(data.get("bg") || "#0f1512"),
+        panel: String(data.get("panel") || "#18211d"),
+        ink: String(data.get("ink") || "#f2f7f3"),
+      };
+      const profile = currentProfile();
+      if (!profile) return;
+      const settings = currentThemeSettings();
+      settings.custom = customTheme;
+      settings.design = "custom";
+      localStorage.setItem(`festival-custom-theme:${profile.id}`, JSON.stringify(customTheme));
+      localStorage.setItem(`festival-design-theme:${profile.id}`, settings.design);
+      saveState();
+      showToast("Theme gespeichert.");
       render();
     });
 }
