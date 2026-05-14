@@ -59,6 +59,3 @@ Danach ist die App unter `http://localhost:3000` erreichbar. Wenn du die App ueb
 Wenn du das Frontend weiter ueber GitHub Pages hostest und das Backend separat deployest, trage in der App als Admin unter `Daten -> Backend Sync` die Backend-URL ein, zum Beispiel `https://dein-backend.example.com`.
 
 Hinweis: Dieses Mini-Backend ist fuer lokale Tests oder einen eigenen Server gedacht. Es laeuft nicht auf GitHub Pages.
-
-todo:
-x es soll automatisch der jeweilige tag für den "beim Zelt" button ausgewählt werden allgemein soll das ganze etwas mehr ausgreift werden
