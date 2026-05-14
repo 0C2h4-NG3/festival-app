@@ -589,6 +589,30 @@ function finishAlcoholGame() {
   render();
 }
 
+function shareAlcoholResult() {
+  if (!alcoholTest?.result) return;
+  const result = alcoholTest.result;
+  const now = new Date();
+  profilePlan().levelResults.push({
+    id: id(),
+    day: localDateKey(now),
+    start: currentTimeValue(),
+    end: "",
+    level: result.level,
+    score: result.score,
+    hits: result.hits,
+    taps: result.taps,
+    spawned: result.spawned,
+    precision: result.precision,
+  });
+  saveState();
+  showToast("Level geteilt.");
+  alcoholTest = null;
+  clearAlcoholTimers();
+  view = "myplan";
+  render();
+}
+
 function alcoholLevel(score, hits, taps) {
   if (taps === 0) return "Zen-Meister oder Handy verloren";
   if (score >= 82) return "Nüchtern genug für den Timetable";
@@ -648,6 +672,9 @@ function profilePlan(profileId = sessionId) {
       tentBeer: 0,
       otherDrinks: 0,
     };
+  if (!Array.isArray(state.plans[profileId].levelResults)) {
+    state.plans[profileId].levelResults = [];
+  }
   if (!state.plans[profileId].themeSettings) {
     state.plans[profileId].themeSettings = {
       mode: localStorage.getItem(`festival-theme:${profileId}`) || "dark",
@@ -1204,7 +1231,10 @@ function renderMyPlan() {
   );
   const allTentItems = state.profiles
     .flatMap((profile) =>
-      profilePlan(profile.id).tents.map((item) => ({ ...item, profile })),
+      [
+        ...profilePlan(profile.id).tents.map((item) => ({ ...item, profile, type: "time" })),
+        ...profilePlan(profile.id).levelResults.map((item) => ({ ...item, profile, type: "level" })),
+      ],
     )
     .sort((a, b) =>
       `${a.day}-${a.start}-${a.profile.name}`.localeCompare(
@@ -1272,12 +1302,12 @@ function renderMyPlan() {
     </section>
     <section class="panel" style="margin-top:16px">
       <div class="panel-header">
-        <h3>Zeltzeiten aller Profile</h3>
+        <h3>Was machen die anderen</h3>
       </div>
       ${
         allTentItems.length
           ? `<div class="table-wrap"><table><thead><tr><th>Profil</th><th>Tag</th><th>Zeit</th><th>Notiz</th></tr></thead><tbody>
-        ${allTentItems.map((item) => `<tr><td><span class="profile-dot" style="background:${item.profile.color}"></span>${escapeHtml(item.profile.name)}</td><td>${dayLabel(item.day)}</td><td>${formatTime(item.start, item.end)}</td><td>${escapeHtml(item.note || "Im Zelt bleiben")}</td></tr>`).join("")}
+        ${allTentItems.map((item) => `<tr><td><span class="profile-dot" style="background:${item.profile.color}"></span>${escapeHtml(item.profile.name)}</td><td>${dayLabel(item.day)}</td><td>${formatTime(item.start, item.end)}</td><td>${item.type === "level" ? `<strong>${escapeHtml(item.level)}</strong><br><span class="muted">Level Score ${item.score}% · ${item.hits} Treffer / ${item.taps} Taps</span>` : escapeHtml(item.note || "Im Zelt bleiben")}</td></tr>`).join("")}
       </tbody></table></div>`
           : `<div class="empty">Noch keine Zeltzeiten in der Gruppe eingetragen.</div>`
       }
@@ -2075,7 +2105,10 @@ function renderAlcoholTest() {
           <div class="stat"><span class="muted">Taps</span><strong>${result.taps}</strong></div>
         </div>
         <p class="muted">Getroffene Krüge: ${result.hits} von ${result.spawned}. <br> Präzision: ${Math.round(result.precision * 100)}%.</p>
-        <button class="primary-button" data-close-alcohol-test>Fertig</button>
+        <div class="button-row">
+          <button class="primary-button" data-share-alcohol-result>Teilen</button>
+          <button class="ghost-button" data-close-alcohol-test>Fertig</button>
+        </div>
       </div>
     </div>
   `;
@@ -2502,6 +2535,8 @@ function bindApp() {
       clearAlcoholTimers();
       render();
     });
+
+  app.querySelector("[data-share-alcohol-result]")?.addEventListener("click", shareAlcoholResult);
 
   app.querySelectorAll("[data-set-color]").forEach((button) => {
     button.addEventListener("click", () => {
