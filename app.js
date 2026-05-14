@@ -136,6 +136,7 @@ let theme = localStorage.getItem("festival-theme") || "dark";
 let expandedStages = JSON.parse(
   localStorage.getItem("festival-expanded-stages") || "{}",
 );
+let ownTentExpanded = localStorage.getItem("festival-own-tent-expanded") === "true";
 let selectedShoppingList = localStorage.getItem("festival-selected-shopping-list") || "all";
 let apiBase = localStorage.getItem(API_BASE_KEY) || DEFAULT_API_BASE;
 let apiKey = localStorage.getItem(API_KEY_KEY) || SUPABASE_PUBLIC_KEY;
@@ -1082,14 +1083,19 @@ function renderMyPlan() {
       <div class="panel">
         <div class="panel-header">
           <h3>Zeltzeiten</h3>
-          <button class="soft-button" data-modal="tent">${icon("plus")} Zeit</button>
+          <div class="button-row">
+            <button class="soft-button" data-toggle-own-tents>${ownTentExpanded ? "Einklappen" : "Ausklappen"}</button>
+            <button class="soft-button" data-modal="tent">${icon("plus")} Zeit</button>
+          </div>
         </div>
         ${
-          tentItems.length
-            ? `<div class="table-wrap"><table><thead><tr><th>Tag</th><th>Zeit</th><th>Notiz</th><th></th></tr></thead><tbody>
+          ownTentExpanded
+            ? (tentItems.length
+                ? `<div class="table-wrap"><table><thead><tr><th>Tag</th><th>Zeit</th><th>Notiz</th><th></th></tr></thead><tbody>
           ${tentItems.map((item) => `<tr><td>${dayLabel(item.day)}</td><td>${formatTime(item.start, item.end)}</td><td>${escapeHtml(item.note || "Im Zelt bleiben")}</td><td><button class="icon-button" title="Löschen" data-delete-tent="${item.id}">${icon("trash", "Löschen")}</button></td></tr>`).join("")}
         </tbody></table></div>`
-            : `<div class="empty">Noch keine Zeltzeit eingetragen.</div>`
+                : `<div class="empty">Noch keine Zeltzeit eingetragen.</div>`)
+            : `<div class="empty">Eigene Zeltzeiten sind eingeklappt.</div>`
         }
       </div>
     </section>
@@ -2167,6 +2173,12 @@ function bindApp() {
   app.querySelector("[data-shopping-list-filter]")?.addEventListener("change", (event) => {
     selectedShoppingList = event.target.value;
     localStorage.setItem("festival-selected-shopping-list", selectedShoppingList);
+    render();
+  });
+
+  app.querySelector("[data-toggle-own-tents]")?.addEventListener("click", () => {
+    ownTentExpanded = !ownTentExpanded;
+    localStorage.setItem("festival-own-tent-expanded", String(ownTentExpanded));
     render();
   });
 
