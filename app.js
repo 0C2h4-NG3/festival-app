@@ -566,7 +566,9 @@ function dayLabel(day) {
   if (festivalDay) return festivalDay.label;
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day || "");
   if (!match) return day;
-  return `${match[3]}.${match[2]}.${match[1]}`;
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  const weekday = date.toLocaleDateString("de-DE", { weekday: "short" }).slice(0, 2);
+  return `${weekday}, ${match[3]}.${match[2]}`;
 }
 
 function sortedActs(day = selectedDay) {
