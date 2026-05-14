@@ -1343,75 +1343,19 @@ function shoppingExportHtml() {
 }
 
 function exportShoppingImage() {
-  const html = shoppingExportHtml();
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1600">
-      <foreignObject width="100%" height="100%">
-        <div xmlns="http://www.w3.org/1999/xhtml">
-          <style>
-            body{margin:0}
-            .shopping-export-doc{font-family:Arial,sans-serif;background:#ffffff;color:#17211d;padding:42px;width:1116px;min-height:1516px}
-            h1{font-size:42px;margin:0 0 8px}
-            h2{font-size:28px;margin:30px 0 12px}
-            p{color:#64706a;font-size:18px}
-            table{width:100%;border-collapse:collapse;font-size:20px}
-            th,td{border:1px solid #d8e2dc;padding:12px;text-align:left;vertical-align:top}
-            th{background:#eef4ef}
-          </style>
-          ${html}
-        </div>
-      </foreignObject>
-    </svg>`;
-  const image = new Image();
-  const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  image.onload = () => {
-    const canvas = document.createElement("canvas");
-    canvas.width = 1200;
-    canvas.height = 1600;
-    const context = canvas.getContext("2d");
-    context.fillStyle = "#ffffff";
-    context.fillRect(0, 0, canvas.width, canvas.height);
-    context.drawImage(image, 0, 0);
-    URL.revokeObjectURL(url);
-    canvas.toBlob((pngBlob) => {
-      if (!pngBlob) return;
-      downloadBlob(pngBlob, `${safeFileName(shoppingExportTitle())}.png`);
-    }, "image/png");
-  };
-  image.src = url;
+  const canvas = drawShoppingExportCanvas();
+  canvas.toBlob((pngBlob) => {
+    if (!pngBlob) {
+      showToast("Bild konnte nicht erstellt werden.");
+      return;
+    }
+    downloadBlob(pngBlob, `${safeFileName(shoppingExportTitle())}.png`);
+  }, "image/png");
 }
 
 function exportShoppingPdf() {
-  const printWindow = window.open("", "_blank");
-  if (!printWindow) {
-    showToast("Popup blockiert. Bitte Popups erlauben.");
-    return;
-  }
-  printWindow.document.write(`
-    <!doctype html>
-    <html lang="de">
-      <head>
-        <meta charset="utf-8">
-        <title>${escapeHtml(shoppingExportTitle())}</title>
-        <style>
-          body{font-family:Arial,sans-serif;color:#17211d;margin:32px}
-          h1{font-size:30px;margin:0 0 6px}
-          h2{font-size:22px;margin:26px 0 10px}
-          p{color:#64706a}
-          table{width:100%;border-collapse:collapse}
-          th,td{border:1px solid #d8e2dc;padding:9px;text-align:left;vertical-align:top}
-          th{background:#eef4ef}
-          @media print{button{display:none}}
-        </style>
-      </head>
-      <body>
-        ${shoppingExportHtml()}
-        <script>window.onload=()=>setTimeout(()=>window.print(),150)</script>
-      </body>
-    </html>
-  `);
-  printWindow.document.close();
+  const pdfBlob = createShoppingPdfBlob();
+  downloadBlob(pdfBlob, `${safeFileName(shoppingExportTitle())}.pdf`);
 }
 
 function safeFileName(value) {
@@ -1423,8 +1367,206 @@ function downloadBlob(blob, fileName) {
   const link = document.createElement("a");
   link.href = url;
   link.download = fileName;
+  document.body.appendChild(link);
   link.click();
-  URL.revokeObjectURL(url);
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function shoppingExportRows() {
+  return selectedShoppingExportLists().flatMap((list) => {
+    const rows = [{ type: "list", text: list.name }];
+    if (!list.items.length) {
+      rows.push({ type: "item", name: "Keine Einträge.", note: "", supporters: "" });
+      return rows;
+    }
+    list.items.forEach((item) => {
+      rows.push({
+        type: "item",
+        name: item.name,
+        note: item.note || "",
+        supporters: item.supporters
+          .map((profileId) => state.profiles.find((profile) => profile.id === profileId)?.name)
+          .filter(Boolean)
+          .join(", "),
+      });
+    });
+    return rows;
+  });
+}
+
+function wrapText(context, text, maxWidth) {
+  const words = String(text || "").split(/\s+/).filter(Boolean);
+  const lines = [];
+  let line = "";
+  words.forEach((word) => {
+    const next = line ? `${line} ${word}` : word;
+    if (context.measureText(next).width > maxWidth && line) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = next;
+    }
+  });
+  if (line) lines.push(line);
+  return lines.length ? lines : [""];
+}
+
+function drawShoppingExportCanvas() {
+  const scale = 2;
+  const width = 900;
+  const margin = 42;
+  const lineHeight = 24;
+  const rows = shoppingExportRows();
+  const height = Math.max(700, 190 + rows.length * 92);
+  const canvas = document.createElement("canvas");
+  canvas.width = width * scale;
+  canvas.height = height * scale;
+  const context = canvas.getContext("2d");
+  context.scale(scale, scale);
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, width, height);
+  context.fillStyle = "#17211d";
+  context.font = "700 34px Arial, sans-serif";
+  context.fillText(shoppingExportTitle(), margin, 58);
+  context.font = "16px Arial, sans-serif";
+  context.fillStyle = "#64706a";
+  context.fillText(`Festival Time Table · ${new Date().toLocaleString("de-DE")}`, margin, 86);
+
+  let y = 128;
+  rows.forEach((row) => {
+    if (row.type === "list") {
+      context.fillStyle = "#176b5b";
+      context.font = "700 24px Arial, sans-serif";
+      context.fillText(row.text, margin, y);
+      y += 34;
+      return;
+    }
+    context.fillStyle = "#eef4ef";
+    context.fillRect(margin, y - 20, width - margin * 2, 66);
+    context.strokeStyle = "#d8e2dc";
+    context.strokeRect(margin, y - 20, width - margin * 2, 66);
+    context.fillStyle = "#17211d";
+    context.font = "700 18px Arial, sans-serif";
+    wrapText(context, row.name, 300).slice(0, 2).forEach((line, index) => {
+      context.fillText(line, margin + 12, y + index * lineHeight);
+    });
+    context.font = "15px Arial, sans-serif";
+    context.fillStyle = "#3f4a45";
+    wrapText(context, row.note, 210).slice(0, 2).forEach((line, index) => {
+      context.fillText(line, margin + 350, y + index * lineHeight);
+    });
+    context.fillStyle = "#64706a";
+    wrapText(context, row.supporters || "-", 230).slice(0, 2).forEach((line, index) => {
+      context.fillText(line, margin + 600, y + index * lineHeight);
+    });
+    y += 82;
+  });
+  return canvas;
+}
+
+function createShoppingPdfBlob() {
+  const lines = [];
+  lines.push(shoppingExportTitle());
+  lines.push(`Festival Time Table · ${new Date().toLocaleString("de-DE")}`);
+  lines.push("");
+  selectedShoppingExportLists().forEach((list) => {
+    lines.push(list.name);
+    if (!list.items.length) lines.push("  Keine Einträge.");
+    list.items.forEach((item) => {
+      const supporters = item.supporters
+        .map((profileId) => state.profiles.find((profile) => profile.id === profileId)?.name)
+        .filter(Boolean)
+        .join(", ");
+      lines.push(`  • ${item.name}`);
+      if (item.note) lines.push(`    Hinweis: ${item.note}`);
+      lines.push(`    Benötigt von: ${supporters || "-"}`);
+    });
+    lines.push("");
+  });
+  return buildSimplePdf(lines);
+}
+
+function buildSimplePdf(lines) {
+  const pageWidth = 595;
+  const pageHeight = 842;
+  const margin = 50;
+  const lineHeight = 16;
+  const escapedLines = lines.flatMap((line) => splitPdfLine(line, 88));
+  const pages = [];
+  for (let index = 0; index < escapedLines.length; index += 44) {
+    pages.push(escapedLines.slice(index, index + 44));
+  }
+  if (!pages.length) pages.push([""]);
+
+  const objects = [];
+  const addObject = (body) => {
+    objects.push(body);
+    return objects.length;
+  };
+  const fontId = addObject("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
+  const pageIds = [];
+  const contentIds = [];
+  pages.forEach((pageLines) => {
+    let y = pageHeight - margin;
+    const streamLines = ["BT", "/F1 12 Tf", "14 TL"];
+    pageLines.forEach((line, lineIndex) => {
+      if (lineIndex === 0) streamLines.push(`${margin} ${y} Td`);
+      else streamLines.push(`0 -${lineHeight} Td`);
+      streamLines.push(`(${escapePdfText(line)}) Tj`);
+      y -= lineHeight;
+    });
+    streamLines.push("ET");
+    const stream = streamLines.join("\n");
+    const contentId = addObject(`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`);
+    contentIds.push(contentId);
+    pageIds.push(null);
+  });
+  const pagesIdPlaceholder = objects.length + pages.length + 1;
+  pages.forEach((_, index) => {
+    const pageId = addObject(`<< /Type /Page /Parent ${pagesIdPlaceholder} 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /Font << /F1 ${fontId} 0 R >> >> /Contents ${contentIds[index]} 0 R >>`);
+    pageIds[index] = pageId;
+  });
+  const pagesId = addObject(`<< /Type /Pages /Kids [${pageIds.map((idValue) => `${idValue} 0 R`).join(" ")}] /Count ${pageIds.length} >>`);
+  const catalogId = addObject(`<< /Type /Catalog /Pages ${pagesId} 0 R >>`);
+  const chunks = ["%PDF-1.4\n"];
+  const offsets = [0];
+  objects.forEach((body, index) => {
+    offsets.push(chunks.join("").length);
+    chunks.push(`${index + 1} 0 obj\n${body}\nendobj\n`);
+  });
+  const xrefStart = chunks.join("").length;
+  chunks.push(`xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`);
+  offsets.slice(1).forEach((offset) => {
+    chunks.push(`${String(offset).padStart(10, "0")} 00000 n \n`);
+  });
+  chunks.push(`trailer\n<< /Size ${objects.length + 1} /Root ${catalogId} 0 R >>\nstartxref\n${xrefStart}\n%%EOF`);
+  return new Blob([chunks.join("")], { type: "application/pdf" });
+}
+
+function splitPdfLine(text, maxLength) {
+  const value = String(text || "");
+  if (value.length <= maxLength) return [value];
+  const result = [];
+  let remaining = value;
+  while (remaining.length > maxLength) {
+    const slice = remaining.slice(0, maxLength);
+    const breakAt = Math.max(slice.lastIndexOf(" "), 1);
+    result.push(remaining.slice(0, breakAt));
+    remaining = remaining.slice(breakAt).trimStart();
+  }
+  if (remaining) result.push(remaining);
+  return result;
+}
+
+function escapePdfText(text) {
+  return String(text || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\x20-\x7E]/g, "?")
+    .replace(/\\/g, "\\\\")
+    .replace(/\(/g, "\\(")
+    .replace(/\)/g, "\\)");
 }
 
 function archiveDoneShoppingItems() {
