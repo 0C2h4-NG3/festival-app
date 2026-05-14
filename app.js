@@ -146,12 +146,14 @@ let expandedStages = JSON.parse(
 );
 let ownTentExpanded = localStorage.getItem("festival-own-tent-expanded") === "true";
 let selectedShoppingList = localStorage.getItem("festival-selected-shopping-list") || "all";
+let shoppingArchiveExpanded = localStorage.getItem("festival-shopping-archive-expanded") === "true";
 let apiBase = localStorage.getItem(API_BASE_KEY) || DEFAULT_API_BASE;
 let apiKey = localStorage.getItem(API_KEY_KEY) || SUPABASE_PUBLIC_KEY;
 let remoteSyncAvailable = false;
 let remoteSaveTimer = null;
 let remoteSyncInFlight = false;
 let timelineScrollLeft = 0;
+let syncState = localStorage.getItem("festival-sync-state") || "offline";
 
 function createSeedState() {
   const adminId = id();
@@ -315,12 +317,23 @@ function supabaseHeaders(extra = {}) {
   return headers;
 }
 
-function setSyncStatus(message) {
+function setSyncStatus(message, status = syncState) {
+  syncState = status;
   localStorage.setItem("festival-sync-status", message);
+  localStorage.setItem("festival-sync-state", status);
+  updateSyncIndicator();
 }
 
 function syncStatus() {
   return localStorage.getItem("festival-sync-status") || "Noch nicht geprüft.";
+}
+
+function updateSyncIndicator() {
+  const pill = document.querySelector(".sync-pill");
+  if (!pill) return;
+  pill.className = `sync-pill ${syncState}`;
+  pill.title = syncStatus();
+  pill.innerHTML = `<span></span>${syncState === "synced" ? "Synchron" : syncState === "saving" ? "Speichert" : "Offline"}`;
 }
 
 function remoteErrorMessage(error) {
@@ -362,7 +375,7 @@ async function loadRemoteState() {
       payload = await response.json();
     }
     remoteSyncAvailable = true;
-    setSyncStatus("Sync verbunden.");
+    setSyncStatus("Sync verbunden.", "synced");
     if (payload.state) {
       state = normalizeState(payload.state);
       selectedDay = state.selectedDay || selectedDay;
@@ -373,7 +386,7 @@ async function loadRemoteState() {
     }
   } catch (error) {
     remoteSyncAvailable = false;
-    setSyncStatus(remoteErrorMessage(error));
+    setSyncStatus(remoteErrorMessage(error), "offline");
   } finally {
     remoteSyncInFlight = false;
   }
@@ -382,6 +395,7 @@ async function loadRemoteState() {
 function scheduleRemoteSave(delay = 350) {
   if (!remoteSyncAvailable) return;
   clearTimeout(remoteSaveTimer);
+  setSyncStatus("Speichert...", "saving");
   remoteSaveTimer = setTimeout(async () => {
     try {
       const response = isSupabaseSync()
@@ -400,11 +414,11 @@ function scheduleRemoteSave(delay = 350) {
           });
       if (!response.ok) throw new Error(`Sync Speichern fehlgeschlagen: ${response.status}${await readErrorBody(response)}`);
       remoteSyncAvailable = true;
-      setSyncStatus("Sync gespeichert.");
+      setSyncStatus("Sync gespeichert.", "synced");
     } catch (error) {
       remoteSyncAvailable = false;
-      setSyncStatus(remoteErrorMessage(error));
-      showToast("Backend-Sync gerade nicht erreichbar.");
+      setSyncStatus(remoteErrorMessage(error), "offline");
+      showToast("Backend-Sync gerade nicht erreichbar.", "error");
     }
   }, delay);
 }
@@ -666,6 +680,9 @@ function render() {
           <strong>${escapeHtml(profile.name)}</strong><br>
           ${profile.role === "admin" ? "Admin Profil" : "Festival Profil"}
         </div>
+        <div class="sync-pill ${syncState}" title="${escapeHtml(syncStatus())}">
+          <span></span>${syncState === "synced" ? "Synchron" : syncState === "saving" ? "Speichert" : "Offline"}
+        </div>
         <nav class="nav">
           ${navButton("timeline", "schedule", "Timetable")}
           ${navButton("myplan", "tent", "Mein Plan")}
@@ -702,6 +719,27 @@ function rememberTimelineScroll() {
 function restoreTimelineScroll() {
   const scroller = app.querySelector(".time-grid-scroll");
   if (scroller) scroller.scrollLeft = timelineScrollLeft;
+}
+
+function scrollTimelineToNow() {
+  const scroller = app.querySelector(".time-grid-scroll");
+  const timeGrid = app.querySelector(".time-grid");
+  const acts = sortedActs();
+  if (!scroller || !timeGrid || !acts.length) return;
+  const starts = acts.map((act) => timeToFestivalMinutes(act.start));
+  const ends = acts.map((act) => timeToFestivalMinutes(act.end || act.start));
+  const min = Math.floor(Math.min(...starts, 12 * 60) / 60) * 60;
+  const max = Math.ceil(Math.max(...ends, 26 * 60) / 60) * 60;
+  const range = Math.max(60, max - min);
+  const current = currentFestivalMinutesForSelectedDay();
+  if (current === null || current < min || current > max) {
+    showToast("Aktuelle Uhrzeit liegt nicht in dieser Timeline.", "warning");
+    return;
+  }
+  const stageLabelWidth = parseFloat(getComputedStyle(timeGrid).getPropertyValue("--stage-label-width")) || 132;
+  const trackWidth = timeGrid.scrollWidth - stageLabelWidth;
+  const target = stageLabelWidth + ((current - min) / range) * trackWidth - (scroller.clientWidth / 2);
+  scroller.scrollTo({ left: Math.max(0, target), behavior: "smooth" });
 }
 
 function bindQuickActionScroll() {
@@ -831,8 +869,9 @@ function renderTimeline() {
     ? `<button class="primary-button compact-action" data-modal="act">${icon("plus")} Act</button><button class="soft-button compact-action" data-modal="stage">${icon("plus")} Bühne</button>`
     : "";
   const acts = sortedActs();
+  const nowAction = acts.length ? `<button class="soft-button compact-action" data-scroll-now>${icon("schedule")} Jetzt anzeigen</button>` : "";
   return `
-    ${renderHeader("Timetable", "Line-up und persönliche Auswahl", `${renderDayTabs()}${adminActions}`)}
+    ${renderHeader("Timetable", "Line-up und persönliche Auswahl", `${renderDayTabs()}${nowAction}${adminActions}`)}
     <div class="quick-actions" aria-label="Schnellaktionen">
       <button class="${tentActive ? "danger-button" : "primary-button"} big-action" data-toggle-tent>${icon("tent")} ${tentActive ? "Zelt verlassen" : "Beim Zelt"}</button>
       <button class="soft-button big-action" data-beer-pickup ${beerLocked ? "disabled" : ""}>${icon("plus")} ${beerLocked ? "Kurz warten" : "Bier holen"}</button>
@@ -1068,21 +1107,13 @@ function renderActCard(act) {
   );
   return `
     <article class="act-card ${stageColorClass(act.stageId)} ${status}">
+      <div class="act-stage-bar"></div>
       <div>
         <div class="act-time">${formatTime(act.start, act.end)}</div>
         <div class="act-title">${escapeHtml(act.artist)}</div>
         ${act.note ? `<div class="muted">${escapeHtml(act.note)}</div>` : ""}
       </div>
-      <div class="chip-row">
-        ${visitors
-          .slice(0, 5)
-          .map(
-            (profile) =>
-              `<span class="chip"><span class="profile-dot" style="background:${profile.color}"></span>${escapeHtml(profile.name)}</span>`,
-          )
-          .join("")}
-        ${visitors.length > 5 ? `<span class="chip">+${visitors.length - 5}</span>` : ""}
-      </div>
+      <div class="compact-user-markers">${renderCompactActUsers(act.id)}</div>
       <div class="button-row">
         <button class="soft-button" data-plan-act="${act.id}" data-status="attending">${icon("check")} Dort</button>
         <button class="ghost-button" data-plan-act="${act.id}" data-status="maybe">Vielleicht</button>
@@ -1091,6 +1122,16 @@ function renderActCard(act) {
       </div>
     </article>
   `;
+}
+
+function renderCompactActUsers(actId) {
+  const markers = state.profiles
+    .map((profile) => ({ profile, status: profilePlan(profile.id).acts[actId] }))
+    .filter((item) => item.status === "attending" || item.status === "maybe");
+  if (!markers.length) return `<span class="muted">Noch niemand markiert.</span>`;
+  return markers
+    .map(({ profile, status }) => `<span class="user-dot ${status}" style="--profile-color:${profile.color}" title="${escapeHtml(profile.name)}: ${status === "attending" ? "Dort" : "Vielleicht"}"></span>`)
+    .join("");
 }
 
 function renderMyPlan() {
@@ -1337,8 +1378,9 @@ function renderShoppingBoard() {
 }
 
 function renderShoppingListColumn(list, items) {
+  const index = Math.max(0, state.shoppingLists.findIndex((entry) => entry.id === list.id));
   return `
-    <div class="shopping-list-column" data-shopping-drop="${list.id}">
+    <div class="shopping-list-column list-tone-${(index % 5) + 1}" data-shopping-drop="${list.id}">
       <div class="shopping-list-head">
         <h3>${escapeHtml(list.name)}</h3>
         <span class="chip">${items.length}</span>
@@ -1360,15 +1402,18 @@ function renderShoppingArchive() {
   if (!archiveGroups.length) return `<div class="shopping-archive"><div class="empty">Noch nichts archiviert.</div></div>`;
   return `
     <div class="shopping-archive">
-      <h3>Archiv</h3>
-      ${archiveGroups.map((group) => `
+      <button class="archive-toggle" data-toggle-shopping-archive>
+        <span>Archiv</span>
+        <span>${shoppingArchiveExpanded ? "Einklappen" : "Ausklappen"} · ${archiveGroups.length}</span>
+      </button>
+      ${shoppingArchiveExpanded ? archiveGroups.map((group) => `
         <section class="archive-group">
           <h4>${escapeHtml(formatArchiveDate(group.archivedAt))}</h4>
           <div class="shopping-list">
             ${group.items.map((item) => `<article class="shopping-item archived"><h3>${escapeHtml(item.name)}</h3>${item.note ? `<p class="muted">${escapeHtml(item.note)}</p>` : ""}<p class="muted">${escapeHtml(group.listName)}</p></article>`).join("")}
           </div>
         </section>
-      `).join("")}
+      `).join("") : ""}
     </div>
   `;
 }
@@ -1438,7 +1483,7 @@ function exportShoppingImage() {
   const canvas = drawShoppingExportCanvas();
   canvas.toBlob((pngBlob) => {
     if (!pngBlob) {
-      showToast("Bild konnte nicht erstellt werden.");
+      showToast("Bild konnte nicht erstellt werden.", "error");
       return;
     }
     downloadBlob(pngBlob, `${safeFileName(shoppingExportTitle())}.png`);
@@ -1667,7 +1712,7 @@ function archiveDoneShoppingItems() {
     : [selectedShoppingList];
   const doneItems = state.shoppingItems.filter((item) => item.done && listIds.includes(item.listId));
   if (!doneItems.length) {
-    showToast("Keine erledigten Einträge in dieser Auswahl.");
+    showToast("Keine erledigten Einträge in dieser Auswahl.", "warning");
     return;
   }
   const archivedAt = new Date().toISOString();
@@ -2077,7 +2122,7 @@ function bindAuth() {
         (item) => item.id === data.get("profileId"),
       );
       if (!profile || profile.pin !== data.get("pin")) {
-        showToast("PIN passt nicht.");
+        showToast("PIN passt nicht.", "error");
         return;
       }
       sessionId = profile.id;
@@ -2258,6 +2303,14 @@ function bindApp() {
     render();
   });
 
+  app.querySelector("[data-scroll-now]")?.addEventListener("click", scrollTimelineToNow);
+
+  app.querySelector("[data-toggle-shopping-archive]")?.addEventListener("click", () => {
+    shoppingArchiveExpanded = !shoppingArchiveExpanded;
+    localStorage.setItem("festival-shopping-archive-expanded", String(shoppingArchiveExpanded));
+    render();
+  });
+
   app.querySelector("[data-export-shopping-image]")?.addEventListener("click", exportShoppingImage);
   app.querySelector("[data-export-shopping-pdf]")?.addEventListener("click", exportShoppingPdf);
   app.querySelector("[data-archive-shopping-done]")?.addEventListener("click", archiveDoneShoppingItems);
@@ -2308,7 +2361,7 @@ function bindApp() {
         (item) => item.id !== profile.id && item.color === color,
       );
       if (taken) {
-        showToast("Diese Farbe ist schon vergeben.");
+        showToast("Diese Farbe ist schon vergeben.", "warning");
         render();
         return;
       }
@@ -2358,7 +2411,7 @@ function bindForms() {
       const data = new FormData(event.currentTarget);
       const color = nextAvailableColor();
       if (!color) {
-        showToast("Keine freie Profilfarbe mehr verfügbar.");
+        showToast("Keine freie Profilfarbe mehr verfügbar.", "warning");
         return;
       }
       state.profiles.push({
@@ -2440,7 +2493,7 @@ function bindForms() {
       localStorage.setItem(API_KEY_KEY, apiKey);
       remoteSyncAvailable = false;
       loadRemoteState();
-      showToast("Backend-Verbindung wird geprüft.");
+      showToast("Backend-Verbindung wird geprüft.", "warning");
     });
 
   app
@@ -2472,7 +2525,7 @@ function bindForms() {
       if (!name) return;
       const exists = state.shoppingLists.some((list) => list.name.toLowerCase() === name.toLowerCase());
       if (exists) {
-        showToast("Diese Liste gibt es schon.");
+        showToast("Diese Liste gibt es schon.", "warning");
         return;
       }
       state.shoppingLists.push({
@@ -2613,7 +2666,7 @@ function bindMutations() {
     button.addEventListener("click", () => {
       const stageId = button.dataset.deleteStage;
       if (state.acts.some((act) => act.stageId === stageId)) {
-        showToast("Bühne hat noch Acts.");
+        showToast("Bühne hat noch Acts.", "warning");
         return;
       }
       state.stages = state.stages.filter((stage) => stage.id !== stageId);
@@ -2797,16 +2850,16 @@ function bindImportExport() {
         showToast("Import abgeschlossen. Bitte neu einloggen.");
         render();
       } catch {
-        showToast("Import fehlgeschlagen.");
+        showToast("Import fehlgeschlagen.", "error");
       }
     });
 }
 
-function showToast(message) {
+function showToast(message, type = "success") {
   clearTimeout(toastTimer);
   document.querySelector(".toast")?.remove();
   const toast = document.createElement("div");
-  toast.className = "toast";
+  toast.className = `toast ${type}`;
   toast.textContent = message;
   document.body.appendChild(toast);
   toastTimer = setTimeout(() => toast.remove(), 2600);
