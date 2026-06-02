@@ -34,31 +34,30 @@ const DAYS = [
   { value: "2026-06-07", label: "So, 07.06." },
 ];
 const OFFICIAL_TIMETABLE = [
-  ["2026-06-05", "Utopia Stage", "Ecca Vandal", "12:50", "13:35"],
-  ["2026-06-05", "Utopia Stage", "The Pretty Reckless", "14:05", "15:05"],
-  ["2026-06-05", "Utopia Stage", "Tom Morello", "15:35", "16:35"],
-  ["2026-06-05", "Utopia Stage", "Three Days Grace", "17:05", "18:20"],
-  ["2026-06-05", "Utopia Stage", "Electric Callboy", "19:00", "20:30"],
-  ["2026-06-05", "Utopia Stage", "Volbeat", "21:15", "23:00"],
-  ["2026-06-05", "Mandora Stage", "Badflower", "13:45", "14:20"],
-  ["2026-06-05", "Mandora Stage", "Paleface Swiss", "14:40", "15:15"],
-  ["2026-06-05", "Mandora Stage", "Bilmuri", "15:35", "16:20"],
-  ["2026-06-05", "Mandora Stage", "Bury Tomorrow", "16:45", "17:40"],
-  ["2026-06-05", "Mandora Stage", "Landmvrks", "18:10", "19:10"],
-  ["2026-06-05", "Mandora Stage", "Ice Nine Kills", "19:40", "20:50"],
-  ["2026-06-05", "Mandora Stage", "Marteria", "21:30", "22:45"],
+  ["2026-06-05", "Utopia Stage", "Ecca Vandal", "12:45", "13:30"],
+  ["2026-06-05", "Utopia Stage", "The Pretty Reckless", "14:00", "15:00"],
+  ["2026-06-05", "Utopia Stage", "Tom Morello", "15:30", "16:30"],
+  ["2026-06-05", "Utopia Stage", "Three Days Grace", "17:00", "18:15"],
+  ["2026-06-05", "Utopia Stage", "Electric Callboy", "18:55", "20:25"],
+  ["2026-06-05", "Utopia Stage", "Volbeat", "21:10", "22:55"],
+  ["2026-06-05", "Mandora Stage", "Paleface Swiss", "14:15", "14:50"],
+  ["2026-06-05", "Mandora Stage", "Bilmuri", "15:10", "15:55"],
+  ["2026-06-05", "Mandora Stage", "Bury Tomorrow", "16:20", "17:15"],
+  ["2026-06-05", "Mandora Stage", "Landmvrks", "17:45", "18:45"],
+  ["2026-06-05", "Mandora Stage", "Ice Nine Kills", "19:15", "20:25"],
+  ["2026-06-05", "Mandora Stage", "Marteria", "21:05", "22:20"],
   ["2026-06-05", "Mandora Stage", "Bad Omens", "23:30", "01:00"],
-  ["2026-06-05", "Orbit Stage", "Max Grimm", "13:10", "13:50"],
-  ["2026-06-05", "Orbit Stage", "Letlive.", "14:15", "14:55"],
-  ["2026-06-05", "Orbit Stage", "The Subways", "15:20", "16:00"],
-  ["2026-06-05", "Orbit Stage", "Wargasm", "16:25", "17:05"],
-  ["2026-06-05", "Orbit Stage", "Dying Wish", "17:30", "18:10"],
-  ["2026-06-05", "Orbit Stage", "High Vis", "18:35", "19:20"],
-  ["2026-06-05", "Orbit Stage", "Thornhill", "19:45", "20:30"],
-  ["2026-06-05", "Orbit Stage", "The Garden", "20:55", "21:45"],
-  ["2026-06-05", "Orbit Stage", "Basement", "22:10", "22:55"],
-  ["2026-06-05", "Orbit Stage", "Palaye Royale", "23:20", "00:20"],
-  ["2026-06-05", "Orbit Stage", "H-Blockx", "00:50", "02:00"],
+  ["2026-06-05", "Orbit Stage", "Max Grimm", "13:20", "14:00"],
+  ["2026-06-05", "Orbit Stage", "Letlive.", "14:25", "15:05"],
+  ["2026-06-05", "Orbit Stage", "Anna Grey", "15:30", "16:10"],
+  ["2026-06-05", "Orbit Stage", "The Subways", "16:35", "17:15"],
+  ["2026-06-05", "Orbit Stage", "Wargasm", "17:40", "18:20"],
+  ["2026-06-05", "Orbit Stage", "Dying Wish", "18:45", "19:30"],
+  ["2026-06-05", "Orbit Stage", "High Vis", "19:55", "20:40"],
+  ["2026-06-05", "Orbit Stage", "Thornhill", "21:05", "21:55"],
+  ["2026-06-05", "Orbit Stage", "Basement", "22:20", "23:05"],
+  ["2026-06-05", "Orbit Stage", "Palaye Royale", "23:30", "00:30"],
+  ["2026-06-05", "Orbit Stage", "H-Blockx", "01:00", "02:00"],
   ["2026-06-06", "Utopia Stage", "Bad Nerves", "12:35", "13:20"],
   ["2026-06-06", "Utopia Stage", "Black Veil Brides", "13:50", "14:45"],
   ["2026-06-06", "Utopia Stage", "Hollywood Undead", "15:15", "16:15"],
@@ -206,7 +205,9 @@ function normalizeState(value) {
     if (!item.listId) item.listId = nextState.shoppingLists[0]?.id || "shopping-buy";
     if (typeof item.done !== "boolean") item.done = false;
   });
-  if (!nextState.acts.length) importOfficialTimetable(nextState);
+  if (!nextState.acts.length || nextState.officialTimetableVersion !== "2026-06-02") {
+    importOfficialTimetable(nextState);
+  }
   ensureUniqueProfileColors(nextState);
   return nextState;
 }
@@ -262,17 +263,26 @@ function importOfficialTimetable(targetState) {
     }
   });
 
-  let added = 0;
+  const officialKeys = new Set();
+  let changed = 0;
   OFFICIAL_TIMETABLE.forEach(([day, stageName, artist, start, end]) => {
     const stageId = stageIdsByName.get(stageName);
-    const exists = targetState.acts.some(
+    const key = `${day}|${stageId}|${artist.toLowerCase()}`;
+    officialKeys.add(key);
+    const existing = targetState.acts.find(
       (act) =>
         act.day === day &&
         act.stageId === stageId &&
-        act.artist.toLowerCase() === artist.toLowerCase() &&
-        act.start === start,
+        act.artist.toLowerCase() === artist.toLowerCase(),
     );
-    if (!exists) {
+    if (existing) {
+      if (existing.start !== start || existing.end !== end || existing.note !== "Offizieller Rock im Park 2026 Timetable") {
+        existing.start = start;
+        existing.end = end;
+        existing.note = "Offizieller Rock im Park 2026 Timetable";
+        changed += 1;
+      }
+    } else {
       targetState.acts.push({
         id: id(),
         artist,
@@ -282,10 +292,26 @@ function importOfficialTimetable(targetState) {
         end,
         note: "Offizieller Rock im Park 2026 Timetable",
       });
-      added += 1;
+      changed += 1;
     }
   });
-  return added;
+
+  const removedIds = new Set();
+  targetState.acts = targetState.acts.filter((act) => {
+    if (act.note !== "Offizieller Rock im Park 2026 Timetable") return true;
+    const key = `${act.day}|${act.stageId}|${act.artist.toLowerCase()}`;
+    if (officialKeys.has(key)) return true;
+    removedIds.add(act.id);
+    changed += 1;
+    return false;
+  });
+  if (removedIds.size) {
+    Object.values(targetState.plans || {}).forEach((plan) => {
+      removedIds.forEach((actId) => delete plan.acts?.[actId]);
+    });
+  }
+  targetState.officialTimetableVersion = "2026-06-02";
+  return changed;
 }
 
 function saveState() {
@@ -383,6 +409,7 @@ async function loadRemoteState() {
       selectedDay = state.selectedDay || selectedDay;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       render();
+      if (state.officialTimetableVersion === "2026-06-02") scheduleRemoteSave(0);
     } else if (state.initialized) {
       scheduleRemoteSave(0);
     }
@@ -1258,6 +1285,17 @@ function renderMyPlan() {
           <button class="primary-button" type="submit">${icon("check")} Namen speichern</button>
         </div>
       </form>
+      <form class="form-grid profile-settings-form" data-form="own-pin">
+        <label>Aktuelle PIN
+          <input name="currentPin" type="password" required>
+        </label>
+        <label>Neue PIN
+          <input name="newPin" type="password" minlength="3" required>
+        </label>
+        <div class="button-row">
+          <button class="soft-button" type="submit">${icon("check")} PIN ändern</button>
+        </div>
+      </form>
       <p class="muted">Diese Farbe markiert deine Auswahl in der Timeline. Jede Farbe kann nur einmal vergeben werden.</p>
       <div class="color-picker">
         ${availableColorsFor(profile.id)
@@ -1908,7 +1946,7 @@ function renderProfiles() {
         <div class="panel-header"><h3>Alle Profile</h3></div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Name</th><th>Rolle</th><th>PIN</th><th></th></tr></thead>
+            <thead><tr><th>Name</th><th>Rolle</th><th>PIN</th><th>Neue PIN</th><th></th></tr></thead>
             <tbody>
               ${state.profiles
                 .map(
@@ -1916,6 +1954,7 @@ function renderProfiles() {
                 <td><span class="profile-dot" style="background:${profile.color}"></span>${escapeHtml(profile.name)}</td>
                 <td>${profile.role === "admin" ? "Admin" : "Profil"}</td>
                 <td>${escapeHtml(profile.pin)}</td>
+                <td><form class="admin-pin-form" data-form="admin-pin" data-profile-id="${profile.id}"><input name="pin" minlength="3" placeholder="setzen"><button class="soft-button" type="submit">Speichern</button></form></td>
                 <td>${profile.id !== sessionId ? `<button class="icon-button" title="Löschen" data-delete-profile="${profile.id}">${icon("trash", "Löschen")}</button>` : ""}</td>
               </tr>`,
                 )
@@ -2736,6 +2775,38 @@ function bindForms() {
       showToast("Name gespeichert.");
       render();
     });
+
+  app
+    .querySelector('[data-form="own-pin"]')
+    ?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const profile = currentProfile();
+      if (!profile) return;
+      const data = new FormData(event.currentTarget);
+      if (String(data.get("currentPin")) !== profile.pin) {
+        showToast("Aktuelle PIN passt nicht.", "error");
+        return;
+      }
+      profile.pin = String(data.get("newPin") || "").trim();
+      saveState();
+      showToast("PIN geändert.");
+      render();
+    });
+
+  app.querySelectorAll('[data-form="admin-pin"]').forEach((form) => {
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const profile = state.profiles.find((item) => item.id === form.dataset.profileId);
+      if (!profile) return;
+      const data = new FormData(form);
+      const pin = String(data.get("pin") || "").trim();
+      if (!pin) return;
+      profile.pin = pin;
+      saveState();
+      showToast("PIN gesetzt.");
+      render();
+    });
+  });
 
   app
     .querySelector('[data-form="custom-theme"]')
