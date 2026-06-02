@@ -209,7 +209,40 @@ function normalizeState(value) {
     importOfficialTimetable(nextState);
   }
   ensureUniqueProfileColors(nextState);
+  cleanupMissingProfileReferences(nextState);
   return nextState;
+}
+
+function cleanupMissingProfileReferences(targetState) {
+  const profileIds = new Set(targetState.profiles.map((profile) => profile.id));
+  Object.keys(targetState.plans || {}).forEach((profileId) => {
+    if (!profileIds.has(profileId)) delete targetState.plans[profileId];
+  });
+  targetState.groups = (targetState.groups || [])
+    .map((group) => ({
+      ...group,
+      members: group.members.filter((memberId) => profileIds.has(memberId)),
+    }))
+    .filter((group) => group.members.length > 0 && profileIds.has(group.creatorId));
+  targetState.shoppingItems = (targetState.shoppingItems || [])
+    .map((item) => ({
+      ...item,
+      supporters: (item.supporters || []).filter((profileId) => profileIds.has(profileId)),
+    }))
+    .filter((item) => profileIds.has(item.creatorId) && item.supporters.length > 0);
+  targetState.shoppingArchive = (targetState.shoppingArchive || [])
+    .map((group) => ({
+      ...group,
+      items: (group.items || [])
+        .map((item) => ({
+          ...item,
+          supporters: (item.supporters || []).filter((profileId) => profileIds.has(profileId)),
+        }))
+        .filter((item) => profileIds.has(item.creatorId) && item.supporters.length > 0),
+    }))
+    .filter((group) => profileIds.has(group.archivedBy) && group.items.length > 0);
+  targetState.shoppingLists = (targetState.shoppingLists || []).filter((list) => list.createdBy === "system" || profileIds.has(list.createdBy));
+  ensureShoppingLists(targetState);
 }
 
 function ensureShoppingLists(targetState) {
@@ -1007,6 +1040,48 @@ function activeGroupFor(profileId = sessionId) {
 
 function cleanupEmptyGroups() {
   state.groups = state.groups.filter((group) => group.members.length > 0);
+}
+
+function removeProfileReferences(profileId) {
+  delete state.plans[profileId];
+
+  state.groups.forEach((group) => {
+    group.members = group.members.filter((memberId) => memberId !== profileId);
+  });
+  cleanupEmptyGroups();
+
+  state.shoppingItems = state.shoppingItems
+    .map((item) => ({
+      ...item,
+      supporters: item.supporters.filter((supporterId) => supporterId !== profileId),
+    }))
+    .filter((item) => item.creatorId !== profileId && item.supporters.length > 0);
+
+  state.shoppingArchive = state.shoppingArchive
+    .map((group) => ({
+      ...group,
+      items: group.items
+        .map((item) => ({
+          ...item,
+          supporters: (item.supporters || []).filter((supporterId) => supporterId !== profileId),
+        }))
+        .filter((item) => item.creatorId !== profileId && (item.supporters || []).length > 0),
+    }))
+    .filter((group) => group.archivedBy !== profileId && group.items.length > 0);
+
+  state.shoppingLists = state.shoppingLists.filter((list) => list.createdBy !== profileId);
+  ensureShoppingLists(state);
+  const validListIds = new Set(state.shoppingLists.map((list) => list.id));
+  state.shoppingItems.forEach((item) => {
+    if (!validListIds.has(item.listId)) item.listId = "shopping-buy";
+  });
+
+  state.profiles.forEach((profile) => {
+    const plan = profilePlan(profile.id);
+    Object.keys(plan.acts || {}).forEach((actId) => {
+      if (!state.acts.some((act) => act.id === actId)) delete plan.acts[actId];
+    });
+  });
 }
 
 function renderGroupPanel() {
@@ -2938,10 +3013,9 @@ function bindMutations() {
   app.querySelectorAll("[data-delete-profile]").forEach((button) => {
     button.addEventListener("click", () => {
       if (!confirm("Dieses Profil löschen?")) return;
-      state.profiles = state.profiles.filter(
-        (profile) => profile.id !== button.dataset.deleteProfile,
-      );
-      delete state.plans[button.dataset.deleteProfile];
+      const profileId = button.dataset.deleteProfile;
+      state.profiles = state.profiles.filter((profile) => profile.id !== profileId);
+      removeProfileReferences(profileId);
       saveState();
       render();
     });
