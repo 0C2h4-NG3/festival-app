@@ -1240,6 +1240,14 @@ function renderActPopover() {
           <button class="ghost-button" data-plan-act="${act.id}" data-status="maybe">Vielleicht</button>
           <button class="ghost-button" data-plan-act="${act.id}" data-status="">Raus</button>
         </div>
+        ${
+          canManage()
+            ? `<div class="button-row admin-action-row">
+                <button class="soft-button" data-edit-act="${act.id}">${icon("edit")} Act bearbeiten</button>
+                <button class="danger-button" data-delete-act="${act.id}">${icon("trash")} Act loeschen</button>
+              </div>`
+            : ""
+        }
       </div>
     </div>
   `;
@@ -2522,6 +2530,7 @@ function bindApp() {
 
   app.querySelectorAll("[data-edit-act]").forEach((button) => {
     button.addEventListener("click", () => {
+      actPopover = null;
       modal = { type: "act", actId: button.dataset.editAct };
       render();
     });
@@ -2999,6 +3008,7 @@ function bindMutations() {
   app.querySelectorAll("[data-delete-act]").forEach((button) => {
     button.addEventListener("click", () => {
       if (!confirm("Diesen Act löschen?")) return;
+      actPopover = null;
       state.acts = state.acts.filter(
         (act) => act.id !== button.dataset.deleteAct,
       );
